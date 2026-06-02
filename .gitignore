@@ -19,6 +19,18 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# PHP runtime files
+vendor/
+backend/storage/*
+!backend/storage/sessions/
+backend/storage/sessions/*
+!backend/storage/sessions/.gitkeep
+*.sqlite
+*.sqlite3
+*.sql.gz
+*.dump
+.phpunit.result.cache
+
 # Test and coverage output
 coverage/
 .nyc_output/

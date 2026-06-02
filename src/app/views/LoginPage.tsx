@@ -14,7 +14,7 @@ import { Input } from '../components/ui/input';
 interface LoginPageProps {
   selectedRole: string;
   onRoleChange: (role: string) => void;
-  onSignIn: () => void;
+  onSignIn: (credentials: { email: string; password: string; role: string }) => Promise<{ ok: boolean; error?: string }>;
 }
 
 export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPageProps) {
@@ -22,8 +22,9 @@ export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPagePro
   const [email, setEmail] = useState('jane.doe@peopleos.com');
   const [password, setPassword] = useState('peopleos');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!email.trim() || !password.trim()) {
@@ -31,14 +32,26 @@ export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPagePro
       return;
     }
 
+    setIsSubmitting(true);
     setError('');
-    onSignIn();
+
+    const result = await onSignIn({
+      email,
+      password,
+      role: selectedRole,
+    });
+
+    if (!result.ok) {
+      setError(result.error ?? 'Unable to sign in.');
+    }
+
+    setIsSubmitting(false);
   };
 
   const roleOptions = [
-    { id: 'admin', label: 'HR Admin' },
-    { id: 'employee', label: 'Employee' },
-    { id: 'exec', label: 'Executive' }
+    { id: 'admin', label: 'HR Admin', email: 'jane.doe@peopleos.com' },
+    { id: 'employee', label: 'Employee', email: 'sarah.jenkins@peopleos.com' },
+    { id: 'exec', label: 'Executive', email: 'alex.rivera@peopleos.com' }
   ];
 
   return (
@@ -60,7 +73,10 @@ export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPagePro
               <button
                 key={role.id}
                 type="button"
-                onClick={() => onRoleChange(role.id)}
+                onClick={() => {
+                  onRoleChange(role.id);
+                  setEmail(role.email);
+                }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
                   selectedRole === role.id
                     ? 'bg-card text-primary shadow-sm'
@@ -131,12 +147,12 @@ export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPagePro
               </p>
             )}
 
-            <Button type="submit" className="w-full h-11 rounded-lg text-base">
+            <Button type="submit" className="w-full h-11 rounded-lg text-base" disabled={isSubmitting}>
               <Fingerprint className="w-4 h-4" />
-              Sign In
+              {isSubmitting ? 'Signing In...' : 'Sign In'}
             </Button>
 
-            <Button type="button" variant="outline" className="w-full h-11 rounded-lg text-base">
+            <Button type="button" variant="outline" className="w-full h-11 rounded-lg text-base" disabled={isSubmitting}>
               <BadgeCheck className="w-4 h-4" />
               Continue with SSO
             </Button>

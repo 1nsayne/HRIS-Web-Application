@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { Dashboard } from './views/Dashboard';
@@ -13,8 +13,18 @@ import { Settings } from './views/Settings';
 import { LoginPage } from './views/LoginPage';
 import { INITIAL_EMPLOYEES, INITIAL_CANDIDATES, INITIAL_LEAVE_REQUESTS, ATTENDANCE_LOGS } from './data/initialData';
 
+interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  title: string | null;
+}
+
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [activeView, setActiveView] = useState('dashboard');
   const [selectedRole, setSelectedRole] = useState('admin');
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
@@ -30,6 +40,31 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isPunchIn, setIsPunchIn] = useState(false);
   const [punchTime, setPunchTime] = useState<string | null>(null);
+
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const response = await fetch('/api/me.php', {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+        setAuthUser(data.user);
+        setSelectedRole(data.user.role);
+        setIsAuthenticated(true);
+      } catch {
+        // The login screen remains available if the PHP API is not running yet.
+      } finally {
+        setIsAuthLoading(false);
+      }
+    };
+
+    restoreSession();
+  }, []);
 
   const handleAddLeaveRequest = (type: string, startDate: string, endDate: string, reason: string) => {
     const newRequest = {
@@ -103,7 +138,43 @@ export default function App() {
     }
   };
 
-  const handleSignOut = () => {
+  const handleSignIn = async (credentials: { email: string; password: string; role: string }) => {
+    try {
+      const response = await fetch('/api/login.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return { ok: false, error: data.message ?? 'Invalid email or password.' };
+      }
+
+      setAuthUser(data.user);
+      setSelectedRole(data.user.role);
+      setIsAuthenticated(true);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Could not reach the PHP auth server. Start Laragon and the PHP API.' };
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/logout.php', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // Local UI state is still cleared if the API is already down.
+    }
+
+    setAuthUser(null);
     setShowNotifications(false);
     setActiveView('dashboard');
     setIsAuthenticated(false);
@@ -329,19 +400,33 @@ export default function App() {
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-sm text-muted-foreground">Checking session...</div>
+      </main>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <LoginPage
         selectedRole={selectedRole}
         onRoleChange={setSelectedRole}
-        onSignIn={() => setIsAuthenticated(true)}
+        onSignIn={handleSignIn}
       />
     );
   }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar activeView={activeView} onViewChange={setActiveView} onSignOut={handleSignOut} />
+      <Sidebar
+        activeView={activeView}
+        onViewChange={setActiveView}
+        onSignOut={handleSignOut}
+        userName={authUser?.name}
+        userTitle={authUser?.title}
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar
           globalSearch={globalSearch}

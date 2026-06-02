@@ -15,9 +15,19 @@ interface SidebarProps {
   activeView: string;
   onViewChange: (view: string) => void;
   onSignOut: () => void;
+  userName?: string;
+  userTitle?: string | null;
 }
 
-export function Sidebar({ activeView, onViewChange, onSignOut }: SidebarProps) {
+export function Sidebar({ activeView, onViewChange, onSignOut, userName = 'Jane Doe', userTitle = 'HR Manager' }: SidebarProps) {
+  const initials = userName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'directory', label: 'Employees', icon: Users },
@@ -62,11 +72,11 @@ export function Sidebar({ activeView, onViewChange, onSignOut }: SidebarProps) {
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-            JD
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm truncate">Jane Doe</p>
-            <p className="text-xs text-muted-foreground">HR Manager</p>
+            <p className="text-sm truncate">{userName}</p>
+            <p className="text-xs text-muted-foreground">{userTitle}</p>
           </div>
         </div>
         <button
