@@ -7,15 +7,17 @@ import {
   Briefcase,
   Target,
   FileText,
-  Settings
+  Settings,
+  LogOut
 } from 'lucide-react';
 
 interface SidebarProps {
   activeView: string;
   onViewChange: (view: string) => void;
+  onSignOut: () => void;
 }
 
-export function Sidebar({ activeView, onViewChange }: SidebarProps) {
+export function Sidebar({ activeView, onViewChange, onSignOut }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'directory', label: 'Employees', icon: Users },
@@ -67,6 +69,13 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
             <p className="text-xs text-muted-foreground">HR Manager</p>
           </div>
         </div>
+        <button
+          onClick={onSignOut}
+          className="mt-2 w-full flex items-center gap-3 px-3 py-2 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-lg transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="text-sm">Sign Out</span>
+        </button>
       </div>
     </aside>
   );

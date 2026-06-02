@@ -10,9 +10,11 @@ import { Recruitment } from './views/Recruitment';
 import { Performance } from './views/Performance';
 import { Documents } from './views/Documents';
 import { Settings } from './views/Settings';
+import { LoginPage } from './views/LoginPage';
 import { INITIAL_EMPLOYEES, INITIAL_CANDIDATES, INITIAL_LEAVE_REQUESTS, ATTENDANCE_LOGS } from './data/initialData';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
   const [selectedRole, setSelectedRole] = useState('admin');
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
@@ -99,6 +101,12 @@ export default function App() {
     } else {
       setActiveView('directory');
     }
+  };
+
+  const handleSignOut = () => {
+    setShowNotifications(false);
+    setActiveView('dashboard');
+    setIsAuthenticated(false);
   };
 
   const handleAddEmployee = () => {
@@ -321,9 +329,19 @@ export default function App() {
     }
   };
 
+  if (!isAuthenticated) {
+    return (
+      <LoginPage
+        selectedRole={selectedRole}
+        onRoleChange={setSelectedRole}
+        onSignIn={() => setIsAuthenticated(true)}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar activeView={activeView} onViewChange={setActiveView} />
+      <Sidebar activeView={activeView} onViewChange={setActiveView} onSignOut={handleSignOut} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar
           globalSearch={globalSearch}
