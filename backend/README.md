@@ -6,7 +6,7 @@ This backend is designed for Laragon with MySQL/MariaDB.
 
 1. Start Laragon, then start Apache/Nginx and MySQL.
 2. Open Laragon Terminal from this project folder.
-3. Import the database:
+3. Create a database named `hris_db`, then import the database:
 
 ```powershell
 mysql -u root < backend/database/schema.sql
@@ -16,7 +16,7 @@ mysql -u root < backend/database/schema.sql
 5. Start the PHP API server:
 
 ```powershell
-php -S 127.0.0.1:8000 -t backend
+& "C:\laragon\bin\php\php-8.3.30-Win32-vs16-x64\php.exe" -S 127.0.0.1:8000 -t backend
 ```
 
 6. Start the React app:
@@ -26,6 +26,8 @@ npm run dev
 ```
 
 The Vite app proxies `/api/*` requests to `http://127.0.0.1:8000`.
+
+Note: opening `http://127.0.0.1:8000/` directly will show "Not Found". That is normal because this server only exposes API files like `/api/login.php` and `/api/me.php`.
 
 ## Demo Accounts
 

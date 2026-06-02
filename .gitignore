@@ -19,17 +19,21 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# PHP runtime files
+# PHP dependencies and runtime files
 vendor/
-backend/storage/*
-!backend/storage/sessions/
+backend/storage/logs/
+backend/storage/cache/
+backend/storage/framework/
 backend/storage/sessions/*
 !backend/storage/sessions/.gitkeep
+backend/tmp/
 *.sqlite
 *.sqlite3
 *.sql.gz
 *.dump
 .phpunit.result.cache
+.phpunit.cache/
+.pest.cache/
 
 # Test and coverage output
 coverage/

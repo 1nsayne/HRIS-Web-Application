@@ -103,7 +103,7 @@ function db(): PDO
 
     $host = env_value('DB_HOST', '127.0.0.1');
     $port = env_value('DB_PORT', '3306');
-    $database = env_value('DB_DATABASE', 'peopleos_hris');
+    $database = env_value('DB_DATABASE', 'hris_db');
     $username = env_value('DB_USERNAME', 'root');
     $password = env_value('DB_PASSWORD', '');
     $dsn = "mysql:host={$host};port={$port};dbname={$database};charset=utf8mb4";
