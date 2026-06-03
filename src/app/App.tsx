@@ -113,6 +113,14 @@ export default function App() {
 
   const currentRole = authUser?.role ?? 'employee';
   const activeView = routeIdFromPath(location.pathname);
+  const currentEmployee = useMemo(() => {
+    if (currentRole === 'employee') {
+      return employees.find((employee) => employee.id === 'EMP-001') ?? employees[0];
+    }
+
+    return employees.find((employee) => employee.name === authUser?.name);
+  }, [authUser?.name, currentRole, employees]);
+
   const selectedEmployeeId = location.pathname.startsWith('/employees/')
     ? decodeURIComponent(location.pathname.replace('/employees/', ''))
     : '';
@@ -264,6 +272,8 @@ export default function App() {
   const dashboard = (
     <Dashboard
       selectedRole={currentRole}
+      currentUserName={authUser?.name}
+      currentEmployee={currentEmployee}
       employees={employees}
       leaveRequests={leaveRequests}
       candidates={candidates}
@@ -457,7 +467,19 @@ export default function App() {
               }
             />
             <Route path="/employees/:employeeId" element={employeeProfile} />
-            <Route path="/attendance" element={<Attendance attendanceLogs={ATTENDANCE_LOGS} />} />
+            <Route
+              path="/attendance"
+              element={
+                <Attendance
+                  attendanceLogs={ATTENDANCE_LOGS}
+                  role={currentRole}
+                  employeeName={currentEmployee?.name ?? authUser?.name}
+                  isPunchIn={isPunchIn}
+                  punchTime={punchTime}
+                  onTogglePunch={handleTogglePunch}
+                />
+              }
+            />
             <Route
               path="/leave"
               element={
@@ -466,6 +488,9 @@ export default function App() {
                   onAddLeaveRequest={handleAddLeaveRequest}
                   onUpdateLeaveStatus={handleUpdateLeaveStatus}
                   employees={employees}
+                  role={currentRole}
+                  currentEmployee={currentEmployee}
+                  currentUserName={authUser?.name}
                 />
               }
             />
@@ -481,8 +506,8 @@ export default function App() {
               }
             />
             <Route path="/performance" element={<Performance employees={employees} />} />
-            <Route path="/documents" element={<Documents />} />
-            <Route path="/settings" element={<Settings />} />
+            <Route path="/documents" element={<Documents role={currentRole} />} />
+            <Route path="/settings" element={<Settings role={currentRole} user={authUser} employee={currentEmployee} />} />
             <Route path="*" element={<Navigate to={defaultRouteByRole[currentRole]} replace />} />
           </Routes>
         </main>

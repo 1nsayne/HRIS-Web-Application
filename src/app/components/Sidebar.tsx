@@ -15,11 +15,12 @@ interface SidebarProps {
   activeView: string;
   onViewChange: (view: string) => void;
   onSignOut: () => void;
+  role?: 'admin' | 'employee' | 'exec';
   userName?: string;
   userTitle?: string | null;
 }
 
-export function Sidebar({ activeView, onViewChange, onSignOut, userName = 'Jane Doe', userTitle = 'HR Manager' }: SidebarProps) {
+export function Sidebar({ activeView, onViewChange, onSignOut, role = 'employee', userName = 'Jane Doe', userTitle = 'HR Manager' }: SidebarProps) {
   const initials = userName
     .split(' ')
     .filter(Boolean)
@@ -30,7 +31,7 @@ export function Sidebar({ activeView, onViewChange, onSignOut, userName = 'Jane 
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'directory', label: 'Employees', icon: Users },
+    { id: 'employees', label: 'Employees', icon: Users },
     { id: 'attendance', label: 'Attendance', icon: Clock },
     { id: 'leave', label: 'Leave', icon: Calendar },
     { id: 'payroll', label: 'Payroll', icon: DollarSign },
@@ -40,6 +41,14 @@ export function Sidebar({ activeView, onViewChange, onSignOut, userName = 'Jane 
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  const visibleItemsByRole = {
+    admin: ['dashboard', 'employees', 'attendance', 'leave', 'payroll', 'recruitment', 'performance', 'documents', 'settings'],
+    employee: ['dashboard', 'attendance', 'leave', 'documents', 'settings'],
+    exec: ['dashboard', 'employees', 'payroll', 'recruitment', 'performance', 'documents'],
+  };
+
+  const visibleMenuItems = menuItems.filter((item) => visibleItemsByRole[role].includes(item.id));
+
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border h-screen flex flex-col">
       <div className="p-6 border-b border-sidebar-border">
@@ -48,7 +57,7 @@ export function Sidebar({ activeView, onViewChange, onSignOut, userName = 'Jane 
       </div>
 
       <nav className="flex-1 p-4 space-y-1">
-        {menuItems.map((item) => {
+        {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeView === item.id;
 

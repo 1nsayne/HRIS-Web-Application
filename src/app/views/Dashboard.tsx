@@ -5,6 +5,8 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 interface DashboardProps {
   selectedRole: string;
+  currentUserName?: string;
+  currentEmployee?: any;
   employees: any[];
   leaveRequests: any[];
   candidates: any[];
@@ -18,6 +20,8 @@ interface DashboardProps {
 
 export function Dashboard({
   selectedRole,
+  currentUserName,
+  currentEmployee,
   employees,
   leaveRequests,
   candidates,
@@ -47,14 +51,14 @@ export function Dashboard({
 
   const pendingApprovals = leaveRequests.filter(r => r.status === 'Pending');
   const presentCount = employees.filter(e => e.status === 'Active').length;
-  const onLeaveCount = employees.filter(e => e.status === 'On Leave').length;
+  const employeeLeaveBalances = currentEmployee?.leaveBalances ?? { vacation: 0, sick: 0, personal: 0 };
 
   return (
     <div className="p-6 space-y-6">
       <div className="p-6 rounded-xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground">
         <h2 className="text-xl md:text-2xl">
           {selectedRole === 'admin' && "HR Operational Command Center"}
-          {selectedRole === 'employee' && "Welcome back, Sarah Jenkins!"}
+          {selectedRole === 'employee' && `Welcome back, ${currentUserName ?? currentEmployee?.name ?? 'Employee'}!`}
           {selectedRole === 'exec' && "Workforce Executive Analytics"}
         </h2>
         <p className="text-sm mt-1 opacity-90">
@@ -220,17 +224,17 @@ export function Dashboard({
               <div className="grid grid-cols-3 gap-4">
                 <div className="p-4 bg-primary/10 rounded-lg text-center">
                   <span className="text-xs text-muted-foreground">Vacation Balance</span>
-                  <p className="text-2xl mt-1">18 Days</p>
+                  <p className="text-2xl mt-1">{employeeLeaveBalances.vacation} Days</p>
                   <span className="text-[10px] text-primary block mt-1">Acquired</span>
                 </div>
                 <div className="p-4 bg-green-100 rounded-lg text-center">
                   <span className="text-xs text-muted-foreground">Sick Leaves</span>
-                  <p className="text-2xl mt-1">10 Days</p>
+                  <p className="text-2xl mt-1">{employeeLeaveBalances.sick} Days</p>
                   <span className="text-[10px] text-green-600 block mt-1">Standard</span>
                 </div>
                 <div className="p-4 bg-amber-100 rounded-lg text-center">
                   <span className="text-xs text-muted-foreground">Personal Leave</span>
-                  <p className="text-2xl mt-1">4 Days</p>
+                  <p className="text-2xl mt-1">{employeeLeaveBalances.personal} Days</p>
                   <span className="text-[10px] text-amber-600 block mt-1">Emergency</span>
                 </div>
               </div>

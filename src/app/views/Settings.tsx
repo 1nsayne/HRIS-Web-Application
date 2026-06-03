@@ -1,7 +1,149 @@
+import { useState } from 'react';
 import { Shield, Users, Building2, Globe, Bell, Lock } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 
-export function Settings() {
+interface SettingsProps {
+  role?: 'admin' | 'employee' | 'exec';
+  user?: {
+    name?: string;
+    email?: string;
+    title?: string | null;
+  } | null;
+  employee?: any;
+}
+
+export function Settings({ role = 'admin', user, employee }: SettingsProps) {
+  const isEmployee = role === 'employee';
+  const [profile, setProfile] = useState({
+    name: user?.name ?? employee?.name ?? 'Employee',
+    email: user?.email ?? employee?.email ?? '',
+    phone: employee?.phone ?? '',
+    location: employee?.location ?? '',
+    title: user?.title ?? employee?.role ?? '',
+  });
+  const [saved, setSaved] = useState(false);
+
+  if (isEmployee) {
+    const handleProfileChange = (field: keyof typeof profile, value: string) => {
+      setProfile((current) => ({ ...current, [field]: value }));
+      setSaved(false);
+    };
+
+    return (
+      <div className="p-6 space-y-6">
+        <div>
+          <h2>My Settings</h2>
+          <p className="text-sm text-muted-foreground mt-1">Update your profile, contact details, and personal preferences</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-5 h-5 text-primary" />
+              <h3>Personal Information</h3>
+            </div>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                setSaved(true);
+              }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Full Name</label>
+                <input
+                  value={profile.name}
+                  onChange={(event) => handleProfileChange('name', event.target.value)}
+                  className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Work Email</label>
+                <input
+                  value={profile.email}
+                  onChange={(event) => handleProfileChange('email', event.target.value)}
+                  className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Phone</label>
+                <input
+                  value={profile.phone}
+                  onChange={(event) => handleProfileChange('phone', event.target.value)}
+                  className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Location</label>
+                <input
+                  value={profile.location}
+                  onChange={(event) => handleProfileChange('location', event.target.value)}
+                  className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Role Title</label>
+                <input
+                  value={profile.title ?? ''}
+                  onChange={(event) => handleProfileChange('title', event.target.value)}
+                  className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="md:col-span-2 flex items-center gap-3">
+                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-sm">
+                  Save Changes
+                </button>
+                {saved && <span className="text-xs text-green-600">Profile updated for this session.</span>}
+              </div>
+            </form>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Lock className="w-5 h-5 text-primary" />
+              <h3>Security</h3>
+            </div>
+            <div className="space-y-3">
+              <button className="w-full px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors text-sm text-left">
+                Change Password
+              </button>
+              <button className="w-full px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors text-sm text-left">
+                Manage Trusted Devices
+              </button>
+              <button className="w-full px-4 py-2 bg-muted hover:bg-muted/80 rounded-lg transition-colors text-sm text-left">
+                Review Sign-in Activity
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Bell className="w-5 h-5 text-primary" />
+            <h3>Notification Preferences</h3>
+          </div>
+          <div className="space-y-4">
+            {[
+              ['Leave request updates', 'Notify me when my leave request is approved or rejected', true],
+              ['Attendance reminders', 'Remind me when I have not punched in near shift start', true],
+              ['Document announcements', 'Notify me when new company documents are published', false],
+            ].map(([title, description, enabled]) => (
+              <div key={title as string} className="flex items-center justify-between py-3 border-b border-border last:border-0">
+                <div>
+                  <p className="text-sm">{title}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{description}</p>
+                </div>
+                <div className={`w-12 h-6 rounded-full relative cursor-pointer ${enabled ? 'bg-primary' : 'bg-muted'}`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full ${enabled ? 'right-1' : 'left-1'}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const userRoles = [
     { id: 1, name: 'Admin', users: 3, permissions: ['Full Access'], description: 'Complete system access' },
     { id: 2, name: 'HR Manager', users: 5, permissions: ['Employee Management', 'Payroll', 'Leave'], description: 'HR operations access' },

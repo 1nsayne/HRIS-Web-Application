@@ -18,9 +18,20 @@ interface LeaveManagementProps {
   onAddLeaveRequest: (type: string, startDate: string, endDate: string, reason: string) => void;
   onUpdateLeaveStatus: (id: string, status: string) => void;
   employees: any[];
+  role?: 'admin' | 'employee' | 'exec';
+  currentEmployee?: any;
+  currentUserName?: string;
 }
 
-export function LeaveManagement({ leaveRequests, onAddLeaveRequest, onUpdateLeaveStatus, employees }: LeaveManagementProps) {
+export function LeaveManagement({
+  leaveRequests,
+  onAddLeaveRequest,
+  onUpdateLeaveStatus,
+  employees,
+  role = 'admin',
+  currentEmployee,
+  currentUserName,
+}: LeaveManagementProps) {
   const [activeTab, setActiveTab] = useState('requests');
   const [newLeaveType, setNewLeaveType] = useState('Vacation');
   const [newLeaveStart, setNewLeaveStart] = useState('');
@@ -45,14 +56,22 @@ export function LeaveManagement({ leaveRequests, onAddLeaveRequest, onUpdateLeav
     }
   };
 
-  const upcomingLeaves = leaveRequests.filter(r => r.status === 'Approved' && new Date(r.startDate) >= new Date());
+  const isEmployee = role === 'employee';
+  const employeeName = currentEmployee?.name ?? currentUserName;
+  const visibleRequests = isEmployee
+    ? leaveRequests.filter((request) => request.employeeId === currentEmployee?.id || request.employeeName === employeeName)
+    : leaveRequests;
+  const visibleEmployees = isEmployee && currentEmployee ? [currentEmployee] : employees;
+  const upcomingLeaves = visibleRequests.filter(r => r.status === 'Approved' && new Date(r.startDate) >= new Date());
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2>Leave Management</h2>
-          <p className="text-sm text-muted-foreground mt-1">Manage employee leave requests and balances</p>
+          <h2>{isEmployee ? 'My Leave' : 'Leave Management'}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {isEmployee ? 'Submit requests and review your balances' : 'Manage employee leave requests and balances'}
+          </p>
         </div>
         <button
           onClick={() => {
@@ -167,7 +186,7 @@ export function LeaveManagement({ leaveRequests, onAddLeaveRequest, onUpdateLeav
                   </tr>
                 </thead>
                 <tbody>
-                  {leaveRequests.map((request) => (
+                  {visibleRequests.map((request) => (
                     <tr key={request.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
@@ -189,7 +208,7 @@ export function LeaveManagement({ leaveRequests, onAddLeaveRequest, onUpdateLeav
                         />
                       </td>
                       <td className="py-3 px-4">
-                        {request.status === 'Pending' && (
+                        {!isEmployee && request.status === 'Pending' && (
                           <div className="flex gap-1">
                             <button
                               onClick={() => onUpdateLeaveStatus(request.id, 'Approved')}
@@ -208,6 +227,13 @@ export function LeaveManagement({ leaveRequests, onAddLeaveRequest, onUpdateLeav
                       </td>
                     </tr>
                   ))}
+                  {visibleRequests.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-8 px-4 text-center text-sm text-muted-foreground">
+                        No leave requests found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -244,7 +270,7 @@ export function LeaveManagement({ leaveRequests, onAddLeaveRequest, onUpdateLeav
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp) => (
+                {visibleEmployees.map((emp) => (
                   <tr key={emp.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
