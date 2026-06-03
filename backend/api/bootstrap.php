@@ -131,3 +131,51 @@ function public_user(array $user): array
         'title' => $user['title'],
     ];
 }
+
+function current_user(): ?array
+{
+    $userId = $_SESSION['user_id'] ?? null;
+
+    if (!$userId) {
+        return null;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT id, name, email, role, title, is_active
+         FROM users
+         WHERE id = :id
+         LIMIT 1'
+    );
+    $stmt->execute(['id' => $userId]);
+    $user = $stmt->fetch();
+
+    if (!$user || (int) $user['is_active'] !== 1) {
+        unset($_SESSION['user_id']);
+        return null;
+    }
+
+    return $user;
+}
+
+function require_user(): array
+{
+    $user = current_user();
+
+    if (!$user) {
+        json_response(['message' => 'Not authenticated.'], 401);
+    }
+
+    return $user;
+}
+
+function require_role(array|string $roles): array
+{
+    $user = require_user();
+    $allowedRoles = is_array($roles) ? $roles : [$roles];
+
+    if (!in_array($user['role'], $allowedRoles, true)) {
+        json_response(['message' => 'Forbidden.'], 403);
+    }
+
+    return $user;
+}
