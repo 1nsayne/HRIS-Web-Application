@@ -12,7 +12,14 @@ import { Performance } from './views/Performance';
 import { Documents } from './views/Documents';
 import { Settings } from './views/Settings';
 import { LoginPage } from './views/LoginPage';
-import { INITIAL_EMPLOYEES, INITIAL_CANDIDATES, INITIAL_LEAVE_REQUESTS, ATTENDANCE_LOGS } from './data/initialData';
+import {
+  FALLBACK_ATTENDANCE_LOGS,
+  FALLBACK_CANDIDATES,
+  FALLBACK_DOCUMENTS,
+  FALLBACK_EMPLOYEES,
+  FALLBACK_LEAVE_REQUESTS,
+  FALLBACK_PAY_PERIODS,
+} from './data/initialData';
 
 type Role = 'admin' | 'employee' | 'exec';
 
@@ -25,10 +32,10 @@ interface AuthUser {
 }
 
 interface HrDataPayload {
-  employees?: typeof INITIAL_EMPLOYEES;
-  candidates?: typeof INITIAL_CANDIDATES;
-  leaveRequests?: typeof INITIAL_LEAVE_REQUESTS;
-  attendanceLogs?: typeof ATTENDANCE_LOGS;
+  employees?: typeof FALLBACK_EMPLOYEES;
+  candidates?: typeof FALLBACK_CANDIDATES;
+  leaveRequests?: typeof FALLBACK_LEAVE_REQUESTS;
+  attendanceLogs?: typeof FALLBACK_ATTENDANCE_LOGS;
   documents?: any[];
   payPeriods?: any[];
 }
@@ -60,13 +67,13 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
-  const [candidates, setCandidates] = useState(INITIAL_CANDIDATES);
-  const [leaveRequests, setLeaveRequests] = useState(INITIAL_LEAVE_REQUESTS);
-  const [attendanceLogs, setAttendanceLogs] = useState(ATTENDANCE_LOGS);
-  const [documents, setDocuments] = useState<any[] | null>(null);
-  const [payPeriods, setPayPeriods] = useState<any[] | null>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState(INITIAL_EMPLOYEES[0]);
+  const [employees, setEmployees] = useState(FALLBACK_EMPLOYEES);
+  const [candidates, setCandidates] = useState(FALLBACK_CANDIDATES);
+  const [leaveRequests, setLeaveRequests] = useState(FALLBACK_LEAVE_REQUESTS);
+  const [attendanceLogs, setAttendanceLogs] = useState(FALLBACK_ATTENDANCE_LOGS);
+  const [documents, setDocuments] = useState<any[]>(FALLBACK_DOCUMENTS);
+  const [payPeriods, setPayPeriods] = useState<any[]>(FALLBACK_PAY_PERIODS);
+  const [selectedEmployee, setSelectedEmployee] = useState(FALLBACK_EMPLOYEES[0]);
   const [globalSearch, setGlobalSearch] = useState('');
   const [notifications, setNotifications] = useState([
     { id: 1, text: 'Sarah Jenkins requested Vacation leave (Pending)', unread: true, time: '1 hour ago' },
@@ -692,7 +699,7 @@ export default function App() {
                 />
               }
             />
-            <Route path="/payroll" element={<Payroll employees={employees} role={currentRole} payPeriods={payPeriods ?? undefined} />} />
+            <Route path="/payroll" element={<Payroll employees={employees} role={currentRole} payPeriods={payPeriods} />} />
             <Route
               path="/recruitment"
               element={
@@ -705,7 +712,7 @@ export default function App() {
               }
             />
             <Route path="/performance" element={<Performance employees={employees} />} />
-            <Route path="/documents" element={<Documents role={currentRole} documents={documents ?? undefined} />} />
+            <Route path="/documents" element={<Documents role={currentRole} documents={documents} />} />
             <Route path="/settings" element={<Settings role={currentRole} user={authUser} employee={currentEmployee} />} />
             <Route path="*" element={<Navigate to={defaultRouteByRole[currentRole]} replace />} />
           </Routes>

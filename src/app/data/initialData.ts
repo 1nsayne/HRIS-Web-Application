@@ -1,4 +1,5 @@
-export const INITIAL_EMPLOYEES = [
+// Fallback-only data used when the PHP/MySQL API is unavailable during local development.
+export const FALLBACK_EMPLOYEES = [
   {
     id: 'EMP-001',
     name: 'Sarah Jenkins',
@@ -91,7 +92,7 @@ export const INITIAL_EMPLOYEES = [
   }
 ];
 
-export const INITIAL_CANDIDATES = [
+export const FALLBACK_CANDIDATES = [
   { id: 'CAN-001', name: 'Sophia Martinez', roleApplied: 'Frontend Developer', stage: 'Screening', rating: 4.5, source: 'LinkedIn', appliedDate: '2026-05-28', interviewScheduled: '2026-06-04' },
   { id: 'CAN-002', name: 'Liam O\'Connor', roleApplied: 'Fullstack Engineer', stage: 'Interview', rating: 4.8, source: 'Direct Referral', appliedDate: '2026-05-24', interviewScheduled: '2026-06-02' },
   { id: 'CAN-003', name: 'Emma Watson', roleApplied: 'Product Designer', stage: 'Technical Assessment', rating: 4.2, source: 'Dribbble', appliedDate: '2026-05-20', interviewScheduled: null },
@@ -99,17 +100,35 @@ export const INITIAL_CANDIDATES = [
   { id: 'CAN-005', name: 'Chloe Dubois', roleApplied: 'HR Generalist', stage: 'Applied', rating: 3.9, source: 'Indeed', appliedDate: '2026-05-31', interviewScheduled: null }
 ];
 
-export const INITIAL_LEAVE_REQUESTS = [
+export const FALLBACK_LEAVE_REQUESTS = [
   { id: 'LRQ-101', employeeId: 'EMP-001', employeeName: 'Sarah Jenkins', type: 'Vacation', startDate: '2026-07-10', endDate: '2026-07-17', status: 'Pending', reason: 'Annual family summer trip' },
   { id: 'LRQ-102', employeeId: 'EMP-002', employeeName: 'Marcus Chen', type: 'Sick Leave', startDate: '2026-06-05', endDate: '2026-06-06', status: 'Approved', reason: 'Dental surgery recovery' },
   { id: 'LRQ-103', employeeId: 'EMP-005', employeeName: 'Alisha Patel', type: 'Maternity/Paternity', startDate: '2026-05-15', endDate: '2026-08-15', status: 'Approved', reason: 'Maternity leave' },
   { id: 'LRQ-104', employeeId: 'EMP-004', employeeName: 'David Kojo', type: 'Personal Day', startDate: '2026-06-15', endDate: '2026-06-16', status: 'Pending', reason: 'Moving to new apartment' }
 ];
 
-export const ATTENDANCE_LOGS = [
+export const FALLBACK_ATTENDANCE_LOGS = [
   { id: 'ATT-001', employeeName: 'Sarah Jenkins', date: '2026-06-02', checkIn: '08:55 AM', checkOut: '05:30 PM', status: 'On Time', shift: 'Day Shift' },
   { id: 'ATT-002', employeeName: 'Marcus Chen', date: '2026-06-02', checkIn: '09:15 AM', checkOut: '06:00 PM', status: 'Late', shift: 'Day Shift' },
   { id: 'ATT-003', employeeName: 'Elena Rostova', date: '2026-06-02', checkIn: '08:45 AM', checkOut: '05:00 PM', status: 'On Time', shift: 'Day Shift' },
   { id: 'ATT-004', employeeName: 'David Kojo', date: '2026-06-02', checkIn: '09:02 AM', checkOut: '05:45 PM', status: 'On Time', shift: 'Day Shift' },
   { id: 'ATT-005', employeeName: 'Alisha Patel', date: '2026-06-02', checkIn: '--', checkOut: '--', status: 'Excused', shift: 'Day Shift' }
+];
+
+export const FALLBACK_DOCUMENTS = [
+  { id: 1, name: 'Employee Handbook 2026', type: 'Policy', size: '2.4 MB', uploadedBy: 'Jane Doe', date: '2026-01-15', category: 'company' },
+  { id: 2, name: 'Code of Conduct', type: 'Policy', size: '856 KB', uploadedBy: 'Jane Doe', date: '2026-01-15', category: 'company' },
+  { id: 3, name: 'Benefits Guide', type: 'Benefits', size: '1.8 MB', uploadedBy: 'Maria Garcia', date: '2026-02-01', category: 'hr' },
+  { id: 4, name: 'Remote Work Policy', type: 'Policy', size: '645 KB', uploadedBy: 'Jane Doe', date: '2026-03-10', category: 'company' },
+  { id: 5, name: 'Performance Review Template', type: 'Template', size: '324 KB', uploadedBy: 'Maria Garcia', date: '2026-04-05', category: 'hr' },
+  { id: 6, name: 'Safety Guidelines', type: 'Compliance', size: '1.2 MB', uploadedBy: 'Jane Doe', date: '2026-01-20', category: 'compliance' },
+  { id: 7, name: 'Data Privacy Policy', type: 'Compliance', size: '987 KB', uploadedBy: 'Jane Doe', date: '2026-01-25', category: 'compliance' },
+  { id: 8, name: 'Onboarding Checklist', type: 'Template', size: '456 KB', uploadedBy: 'Maria Garcia', date: '2026-02-15', category: 'hr' },
+];
+
+export const FALLBACK_PAY_PERIODS = [
+  { period: 'June 2026', totalPayout: 720450, employees: 153, status: 'processing' },
+  { period: 'May 2026', totalPayout: 715300, employees: 150, status: 'completed' },
+  { period: 'April 2026', totalPayout: 708900, employees: 148, status: 'completed' },
+  { period: 'March 2026', totalPayout: 695200, employees: 145, status: 'completed' },
 ];

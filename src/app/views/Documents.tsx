@@ -1,23 +1,13 @@
 import { FileText, Download, Upload, Folder, File } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
+import { FALLBACK_DOCUMENTS } from '../data/initialData';
 
 interface DocumentsProps {
   role?: 'admin' | 'employee' | 'exec';
   documents?: any[];
 }
 
-const fallbackDocuments = [
-  { id: 1, name: 'Employee Handbook 2026', type: 'Policy', size: '2.4 MB', uploadedBy: 'Jane Doe', date: '2026-01-15', category: 'company' },
-  { id: 2, name: 'Code of Conduct', type: 'Policy', size: '856 KB', uploadedBy: 'Jane Doe', date: '2026-01-15', category: 'company' },
-  { id: 3, name: 'Benefits Guide', type: 'Benefits', size: '1.8 MB', uploadedBy: 'Maria Garcia', date: '2026-02-01', category: 'hr' },
-  { id: 4, name: 'Remote Work Policy', type: 'Policy', size: '645 KB', uploadedBy: 'Jane Doe', date: '2026-03-10', category: 'company' },
-  { id: 5, name: 'Performance Review Template', type: 'Template', size: '324 KB', uploadedBy: 'Maria Garcia', date: '2026-04-05', category: 'hr' },
-  { id: 6, name: 'Safety Guidelines', type: 'Compliance', size: '1.2 MB', uploadedBy: 'Jane Doe', date: '2026-01-20', category: 'compliance' },
-  { id: 7, name: 'Data Privacy Policy', type: 'Compliance', size: '987 KB', uploadedBy: 'Jane Doe', date: '2026-01-25', category: 'compliance' },
-  { id: 8, name: 'Onboarding Checklist', type: 'Template', size: '456 KB', uploadedBy: 'Maria Garcia', date: '2026-02-15', category: 'hr' },
-];
-
-export function Documents({ role = 'admin', documents = fallbackDocuments }: DocumentsProps) {
+export function Documents({ role = 'admin', documents = FALLBACK_DOCUMENTS }: DocumentsProps) {
   const isEmployee = role === 'employee';
   const canManageDocuments = role === 'admin';
 

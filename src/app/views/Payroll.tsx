@@ -1,5 +1,6 @@
 import { Download, DollarSign, TrendingUp } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
+import { FALLBACK_PAY_PERIODS } from '../data/initialData';
 
 interface PayrollProps {
   employees: any[];
@@ -7,14 +8,7 @@ interface PayrollProps {
   payPeriods?: any[];
 }
 
-const fallbackPayPeriods = [
-  { period: 'June 2026', totalPayout: 720450, employees: 153, status: 'processing' },
-  { period: 'May 2026', totalPayout: 715300, employees: 150, status: 'completed' },
-  { period: 'April 2026', totalPayout: 708900, employees: 148, status: 'completed' },
-  { period: 'March 2026', totalPayout: 695200, employees: 145, status: 'completed' },
-];
-
-export function Payroll({ employees, role = 'admin', payPeriods = fallbackPayPeriods }: PayrollProps) {
+export function Payroll({ employees, role = 'admin', payPeriods = FALLBACK_PAY_PERIODS }: PayrollProps) {
   const canManagePayroll = role === 'admin';
   const totalGross = employees.reduce((sum, emp) => sum + emp.salary, 0);
   const totalDeductions = employees.reduce((sum, emp) => sum + emp.deductions * 12, 0);
