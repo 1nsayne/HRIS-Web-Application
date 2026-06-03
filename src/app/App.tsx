@@ -118,6 +118,24 @@ export default function App() {
     }
   };
 
+  const postJson = async (url: string, payload: Record<string, unknown>) => {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message ?? 'Request failed.');
+    }
+
+    return data;
+  };
+
   useEffect(() => {
     const restoreSession = async () => {
       try {
@@ -184,12 +202,15 @@ export default function App() {
     [employees, selectedEmployee, selectedEmployeeId]
   );
 
-  const handleAddLeaveRequest = (type: string, startDate: string, endDate: string, reason: string) => {
+  const handleAddLeaveRequest = async (type: string, startDate: string, endDate: string, reason: string) => {
     const isEmployee = currentRole === 'employee';
-    const newRequest = {
+    const requestEmployee = isEmployee
+      ? currentEmployee
+      : employees.find((employee) => employee.id === 'EMP-003') ?? employees[0];
+    let newRequest = {
       id: `LRQ-${Math.floor(Math.random() * 900) + 100}`,
-      employeeId: isEmployee ? 'EMP-001' : 'EMP-003',
-      employeeName: isEmployee ? (authUser?.name ?? 'Employee') : 'Elena Rostova',
+      employeeId: requestEmployee?.id ?? 'EMP-001',
+      employeeName: requestEmployee?.name ?? authUser?.name ?? 'Employee',
       type,
       startDate,
       endDate,
@@ -197,21 +218,49 @@ export default function App() {
       reason
     };
 
-    setLeaveRequests([newRequest, ...leaveRequests]);
-    setNotifications([
+    try {
+      const data = await postJson('/api/leave-requests.php', {
+        employeeId: newRequest.employeeId,
+        type,
+        startDate,
+        endDate,
+        reason,
+      });
+
+      if (data.leaveRequest) {
+        newRequest = data.leaveRequest;
+      }
+    } catch {
+      // Preserve local create behavior when the PHP/MySQL mutation API is unavailable.
+    }
+
+    setLeaveRequests((current) => [newRequest, ...current]);
+    setNotifications((current) => [
       { id: Date.now(), text: `New leave request submitted by ${newRequest.employeeName}`, unread: true, time: 'Just now' },
-      ...notifications
+      ...current
     ]);
   };
 
-  const handleUpdateLeaveStatus = (id: string, newStatus: string) => {
-    setLeaveRequests(leaveRequests.map(req =>
-      req.id === id ? { ...req, status: newStatus } : req
+  const handleUpdateLeaveStatus = async (id: string, newStatus: string) => {
+    let updatedRequest = null;
+
+    try {
+      const data = await postJson('/api/leave-status.php', {
+        id,
+        status: newStatus,
+      });
+      updatedRequest = data.leaveRequest ?? null;
+    } catch {
+      // Keep the in-memory approval workflow usable during API setup.
+    }
+
+    setLeaveRequests((current) => current.map(req =>
+      req.id === id ? (updatedRequest ?? { ...req, status: newStatus }) : req
     ));
   };
 
-  const handleAddCandidate = (name: string, role: string, source: string) => {
-    const newCand = {
+  const handleAddCandidate = async (name: string, role: string, source: string) => {
+    let newCand = {
       id: `CAN-${Math.floor(Math.random() * 900) + 100}`,
       name,
       roleApplied: role,
@@ -222,22 +271,103 @@ export default function App() {
       interviewScheduled: null
     };
 
-    setCandidates([newCand, ...candidates]);
+    try {
+      const data = await postJson('/api/candidates.php', {
+        name,
+        roleApplied: role,
+        source,
+      });
+
+      if (data.candidate) {
+        newCand = data.candidate;
+      }
+    } catch {
+      // Preserve local candidate creation while the backend mutation path is unavailable.
+    }
+
+    setCandidates((current) => [newCand, ...current]);
   };
 
-  const handleUpdateCandidateStage = (id: string, nextStage: string) => {
-    setCandidates(candidates.map(cand =>
-      cand.id === id ? { ...cand, stage: nextStage } : cand
+  const handleUpdateCandidateStage = async (id: string, nextStage: string) => {
+    let updatedCandidate = null;
+
+    try {
+      const data = await postJson('/api/candidate-stage.php', {
+        id,
+        stage: nextStage,
+      });
+      updatedCandidate = data.candidate ?? null;
+    } catch {
+      // Keep local stage advancement available while the backend is being imported.
+    }
+
+    setCandidates((current) => current.map(cand =>
+      cand.id === id ? (updatedCandidate ?? { ...cand, stage: nextStage }) : cand
     ));
   };
 
-  const handleTogglePunch = () => {
+  const handleTogglePunch = async () => {
+    const nextIsPunchIn = !isPunchIn;
+    const fallbackPunchTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    try {
+      const data = await postJson('/api/punch.php', {
+        action: nextIsPunchIn ? 'in' : 'out',
+      });
+
+      setIsPunchIn(Boolean(data.isPunchIn));
+      setPunchTime(data.punchTime ?? null);
+
+      if (data.attendanceLog) {
+        setAttendanceLogs((current) => {
+          const exists = current.some((log) => log.id === data.attendanceLog.id);
+          return exists
+            ? current.map((log) => log.id === data.attendanceLog.id ? data.attendanceLog : log)
+            : [data.attendanceLog, ...current];
+        });
+      }
+      return;
+    } catch {
+      // Fall back to the previous local-only punch toggle if the API is offline.
+    }
+
     if (!isPunchIn) {
       setIsPunchIn(true);
-      setPunchTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+      setPunchTime(fallbackPunchTime);
+      setAttendanceLogs((current) => {
+        const today = new Date().toISOString().split('T')[0];
+        const employeeName = currentEmployee?.name ?? authUser?.name ?? 'Employee';
+        const existingLog = current.find((log) => log.employeeName === employeeName && log.date === today);
+
+        if (existingLog) {
+          return current.map((log) => log.id === existingLog.id ? { ...log, checkIn: fallbackPunchTime, status: 'On Time' } : log);
+        }
+
+        return [
+          {
+            id: `ATT-${Math.floor(Math.random() * 900) + 100}`,
+            employeeName,
+            date: today,
+            checkIn: fallbackPunchTime,
+            checkOut: '--',
+            status: 'On Time',
+            shift: 'Day Shift',
+          },
+          ...current,
+        ];
+      });
     } else {
       setIsPunchIn(false);
       setPunchTime(null);
+      setAttendanceLogs((current) => {
+        const today = new Date().toISOString().split('T')[0];
+        const employeeName = currentEmployee?.name ?? authUser?.name ?? 'Employee';
+        return current.map((log) =>
+          log.employeeName === employeeName && log.date === today
+            ? { ...log, checkOut: fallbackPunchTime }
+            : log
+        );
+      });
     }
   };
 
@@ -302,9 +432,9 @@ export default function App() {
     navigate('/login', { replace: true });
   };
 
-  const handleAddEmployee = () => {
-    const newEmp = {
-      id: `EMP-00${employees.length + 1}`,
+  const handleAddEmployee = async () => {
+    let newEmp = {
+      id: `EMP-${String(employees.length + 1).padStart(3, '0')}`,
       name: 'Jordan Finch',
       role: 'Data Analyst',
       department: 'Product',
@@ -321,7 +451,17 @@ export default function App() {
       recruitmentSource: 'Indeed',
       avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&h=150&q=80'
     };
-    setEmployees([...employees, newEmp]);
+
+    try {
+      const data = await postJson('/api/employees.php', newEmp);
+      if (data.employee) {
+        newEmp = data.employee;
+      }
+    } catch {
+      // Keep the demo add-employee button useful while employee mutations are unavailable.
+    }
+
+    setEmployees((current) => [...current, newEmp]);
   };
 
   const dashboard = (
