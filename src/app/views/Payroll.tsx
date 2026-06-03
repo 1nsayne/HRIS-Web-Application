@@ -4,9 +4,17 @@ import { StatusBadge } from '../components/StatusBadge';
 interface PayrollProps {
   employees: any[];
   role?: 'admin' | 'employee' | 'exec';
+  payPeriods?: any[];
 }
 
-export function Payroll({ employees, role = 'admin' }: PayrollProps) {
+const fallbackPayPeriods = [
+  { period: 'June 2026', totalPayout: 720450, employees: 153, status: 'processing' },
+  { period: 'May 2026', totalPayout: 715300, employees: 150, status: 'completed' },
+  { period: 'April 2026', totalPayout: 708900, employees: 148, status: 'completed' },
+  { period: 'March 2026', totalPayout: 695200, employees: 145, status: 'completed' },
+];
+
+export function Payroll({ employees, role = 'admin', payPeriods = fallbackPayPeriods }: PayrollProps) {
   const canManagePayroll = role === 'admin';
   const totalGross = employees.reduce((sum, emp) => sum + emp.salary, 0);
   const totalDeductions = employees.reduce((sum, emp) => sum + emp.deductions * 12, 0);
@@ -19,13 +27,6 @@ export function Payroll({ employees, role = 'admin' }: PayrollProps) {
       minimumFractionDigits: 0,
     }).format(amount);
   };
-
-  const payPeriods = [
-    { period: 'June 2026', totalPayout: 720450, employees: 153, status: 'processing' },
-    { period: 'May 2026', totalPayout: 715300, employees: 150, status: 'completed' },
-    { period: 'April 2026', totalPayout: 708900, employees: 148, status: 'completed' },
-    { period: 'March 2026', totalPayout: 695200, employees: 145, status: 'completed' },
-  ];
 
   return (
     <div className="p-6 space-y-6">

@@ -439,9 +439,9 @@ Document SQL to JSON:
 
 ## Implementation Order
 
-1. Extend `backend/database/schema.sql` with the proposed tables and seed data.
-2. Add a shared auth guard helper in `bootstrap.php`, for example `require_user()`.
-3. Create `backend/api/hr-data.php` with read-only data for all roles.
+(/) 1. Extend `backend/database/schema.sql` with the proposed tables and seed data.
+(/) 2. Add a shared auth guard helper in `bootstrap.php`, for example `require_user()`.
+(/) 3. Create `backend/api/hr-data.php` with read-only data for all roles.
 4. Update `src/app/App.tsx` to fetch `/api/hr-data.php` after session restore.
 5. Keep frontend fallback to `INITIAL_*` arrays if API fails during development.
 6. Add mutation endpoints one at a time and replace the in-memory handlers:

@@ -24,6 +24,15 @@ interface AuthUser {
   title: string | null;
 }
 
+interface HrDataPayload {
+  employees?: typeof INITIAL_EMPLOYEES;
+  candidates?: typeof INITIAL_CANDIDATES;
+  leaveRequests?: typeof INITIAL_LEAVE_REQUESTS;
+  attendanceLogs?: typeof ATTENDANCE_LOGS;
+  documents?: any[];
+  payPeriods?: any[];
+}
+
 const defaultRouteByRole: Record<Role, string> = {
   admin: '/dashboard',
   employee: '/dashboard',
@@ -54,6 +63,9 @@ export default function App() {
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [candidates, setCandidates] = useState(INITIAL_CANDIDATES);
   const [leaveRequests, setLeaveRequests] = useState(INITIAL_LEAVE_REQUESTS);
+  const [attendanceLogs, setAttendanceLogs] = useState(ATTENDANCE_LOGS);
+  const [documents, setDocuments] = useState<any[] | null>(null);
+  const [payPeriods, setPayPeriods] = useState<any[] | null>(null);
   const [selectedEmployee, setSelectedEmployee] = useState(INITIAL_EMPLOYEES[0]);
   const [globalSearch, setGlobalSearch] = useState('');
   const [notifications, setNotifications] = useState([
@@ -64,6 +76,47 @@ export default function App() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isPunchIn, setIsPunchIn] = useState(false);
   const [punchTime, setPunchTime] = useState<string | null>(null);
+
+  const loadHrData = async () => {
+    try {
+      const response = await fetch('/api/hr-data.php', {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data: HrDataPayload = await response.json();
+
+      if (Array.isArray(data.employees) && data.employees.length > 0) {
+        setEmployees(data.employees);
+        setSelectedEmployee(data.employees[0]);
+      }
+
+      if (Array.isArray(data.candidates)) {
+        setCandidates(data.candidates);
+      }
+
+      if (Array.isArray(data.leaveRequests)) {
+        setLeaveRequests(data.leaveRequests);
+      }
+
+      if (Array.isArray(data.attendanceLogs)) {
+        setAttendanceLogs(data.attendanceLogs);
+      }
+
+      if (Array.isArray(data.documents)) {
+        setDocuments(data.documents);
+      }
+
+      if (Array.isArray(data.payPeriods)) {
+        setPayPeriods(data.payPeriods);
+      }
+    } catch {
+      // Keep the seeded frontend arrays available while the PHP/MySQL API is offline.
+    }
+  };
 
   useEffect(() => {
     const restoreSession = async () => {
@@ -79,6 +132,7 @@ export default function App() {
         const data = await response.json();
         setAuthUser(data.user);
         setIsAuthenticated(true);
+        await loadHrData();
       } catch {
         // The login screen remains available if the PHP API is not running yet.
       } finally {
@@ -224,6 +278,7 @@ export default function App() {
 
       setAuthUser(data.user);
       setIsAuthenticated(true);
+      await loadHrData();
       navigate(defaultRouteByRole[data.user.role as Role], { replace: true });
       return { ok: true };
     } catch {
@@ -277,7 +332,7 @@ export default function App() {
       employees={employees}
       leaveRequests={leaveRequests}
       candidates={candidates}
-      attendanceLogs={ATTENDANCE_LOGS}
+      attendanceLogs={attendanceLogs}
       onUpdateLeaveStatus={handleUpdateLeaveStatus}
       onViewChange={(view) => navigate(`/${view}`)}
       isPunchIn={isPunchIn}
@@ -474,7 +529,7 @@ export default function App() {
               path="/attendance"
               element={
                 <Attendance
-                  attendanceLogs={ATTENDANCE_LOGS}
+                  attendanceLogs={attendanceLogs}
                   role={currentRole}
                   employeeName={currentEmployee?.name ?? authUser?.name}
                   isPunchIn={isPunchIn}
@@ -497,7 +552,7 @@ export default function App() {
                 />
               }
             />
-            <Route path="/payroll" element={<Payroll employees={employees} role={currentRole} />} />
+            <Route path="/payroll" element={<Payroll employees={employees} role={currentRole} payPeriods={payPeriods ?? undefined} />} />
             <Route
               path="/recruitment"
               element={
@@ -510,7 +565,7 @@ export default function App() {
               }
             />
             <Route path="/performance" element={<Performance employees={employees} />} />
-            <Route path="/documents" element={<Documents role={currentRole} />} />
+            <Route path="/documents" element={<Documents role={currentRole} documents={documents ?? undefined} />} />
             <Route path="/settings" element={<Settings role={currentRole} user={authUser} employee={currentEmployee} />} />
             <Route path="*" element={<Navigate to={defaultRouteByRole[currentRole]} replace />} />
           </Routes>
