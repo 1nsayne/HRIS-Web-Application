@@ -63,7 +63,7 @@ export function Dashboard({
         </h2>
         <p className="text-sm mt-1 opacity-90">
           {selectedRole === 'admin' && "Monitor systems, review pending leaves, and process payroll cycle logs."}
-          {selectedRole === 'employee' && "Submit vacation requests, view timesheets, and review quarterly targets."}
+          {selectedRole === 'employee' && "Punch in, submit leave requests, and review your balances."}
           {selectedRole === 'exec' && "Analyze payroll allocation trends, departmental growth metrics, and productivity levels."}
         </p>
       </div>

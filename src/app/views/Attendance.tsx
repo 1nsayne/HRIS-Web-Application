@@ -30,6 +30,7 @@ export function Attendance({ attendanceLogs, role = 'admin', employeeName, isPun
       case 'On Time': return 'success';
       case 'Late': return 'warning';
       case 'Excused': return 'info';
+      case 'Scheduled': return 'neutral';
       default: return 'error';
     }
   };
