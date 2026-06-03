@@ -12,12 +12,10 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
 interface LoginPageProps {
-  selectedRole: string;
-  onRoleChange: (role: string) => void;
-  onSignIn: (credentials: { email: string; password: string; role: string }) => Promise<{ ok: boolean; error?: string }>;
+  onSignIn: (credentials: { email: string; password: string }) => Promise<{ ok: boolean; error?: string }>;
 }
 
-export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPageProps) {
+export function LoginPage({ onSignIn }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('jane.doe@peopleos.com');
   const [password, setPassword] = useState('peopleos');
@@ -38,7 +36,6 @@ export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPagePro
     const result = await onSignIn({
       email,
       password,
-      role: selectedRole,
     });
 
     if (!result.ok) {
@@ -47,12 +44,6 @@ export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPagePro
 
     setIsSubmitting(false);
   };
-
-  const roleOptions = [
-    { id: 'admin', label: 'HR Admin', email: 'jane.doe@peopleos.com' },
-    { id: 'employee', label: 'Employee', email: 'sarah.jenkins@peopleos.com' },
-    { id: 'exec', label: 'Executive', email: 'alex.rivera@peopleos.com' }
-  ];
 
   return (
     <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-5">
@@ -66,26 +57,6 @@ export function LoginPage({ selectedRole, onRoleChange, onSignIn }: LoginPagePro
             <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
               <ShieldCheck className="w-5 h-5 text-primary" />
             </div>
-          </div>
-
-          <div className="mt-8 flex items-center bg-muted p-1 rounded-lg border border-border">
-            {roleOptions.map((role) => (
-              <button
-                key={role.id}
-                type="button"
-                onClick={() => {
-                  onRoleChange(role.id);
-                  setEmail(role.email);
-                }}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
-                  selectedRole === role.id
-                    ? 'bg-card text-primary shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {role.label}
-              </button>
-            ))}
           </div>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">

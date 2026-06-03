@@ -3,8 +3,6 @@ import { Search, Bell, Clock, Plus } from 'lucide-react';
 interface TopBarProps {
   globalSearch: string;
   onSearchChange: (value: string) => void;
-  selectedRole: string;
-  onRoleChange: (role: string) => void;
   notifications: Array<{ id: number; text: string; unread: boolean; time: string }>;
   onMarkAllRead: () => void;
   showNotifications: boolean;
@@ -18,8 +16,6 @@ interface TopBarProps {
 export function TopBar({
   globalSearch,
   onSearchChange,
-  selectedRole,
-  onRoleChange,
   notifications,
   onMarkAllRead,
   showNotifications,
@@ -41,34 +37,6 @@ export function TopBar({
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-input-background rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-ring text-sm"
           />
-        </div>
-
-        <div className="hidden md:flex items-center bg-muted p-1 rounded-lg border border-border">
-          <span className="text-xs font-semibold text-muted-foreground px-2">View:</span>
-          <button
-            onClick={() => onRoleChange('admin')}
-            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-              selectedRole === 'admin' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            HR Admin
-          </button>
-          <button
-            onClick={() => onRoleChange('employee')}
-            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-              selectedRole === 'employee' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Employee
-          </button>
-          <button
-            onClick={() => onRoleChange('exec')}
-            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-              selectedRole === 'exec' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Executive
-          </button>
         </div>
       </div>
 

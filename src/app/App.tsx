@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { Dashboard } from './views/Dashboard';
@@ -13,20 +14,43 @@ import { Settings } from './views/Settings';
 import { LoginPage } from './views/LoginPage';
 import { INITIAL_EMPLOYEES, INITIAL_CANDIDATES, INITIAL_LEAVE_REQUESTS, ATTENDANCE_LOGS } from './data/initialData';
 
+type Role = 'admin' | 'employee' | 'exec';
+
 interface AuthUser {
   id: number;
   name: string;
   email: string;
-  role: string;
+  role: Role;
   title: string | null;
 }
 
+const defaultRouteByRole: Record<Role, string> = {
+  admin: '/dashboard',
+  employee: '/dashboard',
+  exec: '/dashboard',
+};
+
+const routeAccess: Record<Role, string[]> = {
+  admin: ['/dashboard', '/employees', '/attendance', '/leave', '/payroll', '/recruitment', '/performance', '/documents', '/settings'],
+  employee: ['/dashboard', '/attendance', '/leave', '/documents', '/settings'],
+  exec: ['/dashboard', '/employees', '/payroll', '/recruitment', '/performance', '/documents'],
+};
+
+function canAccessRoute(role: Role, pathname: string) {
+  return routeAccess[role].some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+function routeIdFromPath(pathname: string) {
+  if (pathname.startsWith('/employees')) return 'employees';
+  return pathname.split('/')[1] || 'dashboard';
+}
+
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [activeView, setActiveView] = useState('dashboard');
-  const [selectedRole, setSelectedRole] = useState('admin');
   const [employees, setEmployees] = useState(INITIAL_EMPLOYEES);
   const [candidates, setCandidates] = useState(INITIAL_CANDIDATES);
   const [leaveRequests, setLeaveRequests] = useState(INITIAL_LEAVE_REQUESTS);
@@ -54,7 +78,6 @@ export default function App() {
 
         const data = await response.json();
         setAuthUser(data.user);
-        setSelectedRole(data.user.role);
         setIsAuthenticated(true);
       } catch {
         // The login screen remains available if the PHP API is not running yet.
@@ -66,11 +89,45 @@ export default function App() {
     restoreSession();
   }, []);
 
+  useEffect(() => {
+    if (!isAuthLoading && !isAuthenticated && location.pathname !== '/login') {
+      navigate('/login', { replace: true });
+    }
+  }, [isAuthLoading, isAuthenticated, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isAuthLoading && isAuthenticated && authUser && location.pathname === '/login') {
+      navigate(defaultRouteByRole[authUser.role], { replace: true });
+    }
+  }, [authUser, isAuthLoading, isAuthenticated, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !authUser || location.pathname === '/login') {
+      return;
+    }
+
+    if (!canAccessRoute(authUser.role, location.pathname)) {
+      navigate(defaultRouteByRole[authUser.role], { replace: true });
+    }
+  }, [authUser, isAuthenticated, location.pathname, navigate]);
+
+  const currentRole = authUser?.role ?? 'employee';
+  const activeView = routeIdFromPath(location.pathname);
+  const selectedEmployeeId = location.pathname.startsWith('/employees/')
+    ? decodeURIComponent(location.pathname.replace('/employees/', ''))
+    : '';
+
+  const routeSelectedEmployee = useMemo(
+    () => employees.find((employee) => employee.id === selectedEmployeeId) ?? selectedEmployee,
+    [employees, selectedEmployee, selectedEmployeeId]
+  );
+
   const handleAddLeaveRequest = (type: string, startDate: string, endDate: string, reason: string) => {
+    const isEmployee = currentRole === 'employee';
     const newRequest = {
       id: `LRQ-${Math.floor(Math.random() * 900) + 100}`,
-      employeeId: selectedRole === 'employee' ? 'EMP-001' : 'EMP-003',
-      employeeName: selectedRole === 'employee' ? 'Sarah Jenkins' : 'Elena Rostova',
+      employeeId: isEmployee ? 'EMP-001' : 'EMP-003',
+      employeeName: isEmployee ? (authUser?.name ?? 'Employee') : 'Elena Rostova',
       type,
       startDate,
       endDate,
@@ -127,18 +184,20 @@ export default function App() {
   };
 
   const handleQuickAction = () => {
-    if (activeView === 'recruitment') {
+    if (location.pathname.startsWith('/recruitment')) {
       const formEl = document.getElementById('candForm');
       if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
-    } else if (activeView === 'leave') {
+    } else if (location.pathname.startsWith('/leave')) {
       const formEl = document.getElementById('leaveForm');
       if (formEl) formEl.scrollIntoView({ behavior: 'smooth' });
+    } else if (canAccessRoute(currentRole, '/employees')) {
+      navigate('/employees');
     } else {
-      setActiveView('directory');
+      navigate('/leave');
     }
   };
 
-  const handleSignIn = async (credentials: { email: string; password: string; role: string }) => {
+  const handleSignIn = async (credentials: { email: string; password: string }) => {
     try {
       const response = await fetch('/api/login.php', {
         method: 'POST',
@@ -156,8 +215,8 @@ export default function App() {
       }
 
       setAuthUser(data.user);
-      setSelectedRole(data.user.role);
       setIsAuthenticated(true);
+      navigate(defaultRouteByRole[data.user.role as Role], { replace: true });
       return { ok: true };
     } catch {
       return { ok: false, error: 'Could not reach the PHP auth server. Start Laragon and the PHP API.' };
@@ -176,8 +235,8 @@ export default function App() {
 
     setAuthUser(null);
     setShowNotifications(false);
-    setActiveView('dashboard');
     setIsAuthenticated(false);
+    navigate('/login', { replace: true });
   };
 
   const handleAddEmployee = () => {
@@ -202,203 +261,146 @@ export default function App() {
     setEmployees([...employees, newEmp]);
   };
 
-  const renderView = () => {
-    switch (activeView) {
-      case 'dashboard':
-        return (
-          <Dashboard
-            selectedRole={selectedRole}
-            employees={employees}
-            leaveRequests={leaveRequests}
-            candidates={candidates}
-            onUpdateLeaveStatus={handleUpdateLeaveStatus}
-            onViewChange={setActiveView}
-            isPunchIn={isPunchIn}
-            punchTime={punchTime}
-            onTogglePunch={handleTogglePunch}
-            onAddLeaveRequest={handleAddLeaveRequest}
-          />
-        );
-      case 'directory':
-        return (
-          <EmployeeDirectory
-            employees={employees}
-            globalSearch={globalSearch}
-            onSelectEmployee={(emp) => {
-              setSelectedEmployee(emp);
-              setActiveView('profile');
-            }}
-            onAddEmployee={handleAddEmployee}
-          />
-        );
-      case 'attendance':
-        return <Attendance attendanceLogs={ATTENDANCE_LOGS} />;
-      case 'leave':
-        return (
-          <LeaveManagement
-            leaveRequests={leaveRequests}
-            onAddLeaveRequest={handleAddLeaveRequest}
-            onUpdateLeaveStatus={handleUpdateLeaveStatus}
-            employees={employees}
-          />
-        );
-      case 'payroll':
-        return <Payroll employees={employees} />;
-      case 'recruitment':
-        return (
-          <Recruitment
-            candidates={candidates}
-            onAddCandidate={handleAddCandidate}
-            onUpdateCandidateStage={handleUpdateCandidateStage}
-          />
-        );
-      case 'performance':
-        return <Performance employees={employees} />;
-      case 'documents':
-        return <Documents />;
-      case 'settings':
-        return <Settings />;
-      case 'profile':
-        return (
-          <div className="p-6 space-y-6">
-            <button
-              onClick={() => setActiveView('directory')}
-              className="text-xs text-primary hover:underline"
-            >
-              ← Back to Directory
-            </button>
-            {selectedEmployee && (
-              <div className="space-y-6">
-                <div className="bg-card p-6 rounded-xl border border-border">
-                  <div className="flex items-start gap-6">
-                    <img
-                      src={selectedEmployee.avatar}
-                      alt={selectedEmployee.name}
-                      className="w-24 h-24 rounded-xl object-cover border border-border"
-                    />
-                    <div className="flex-1">
-                      <h2>{selectedEmployee.name}</h2>
-                      <p className="text-sm text-primary mt-1">{selectedEmployee.role}</p>
-                      <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border text-xs">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span>{selectedEmployee.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span>{selectedEmployee.phone}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <span>{selectedEmployee.location}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+  const dashboard = (
+    <Dashboard
+      selectedRole={currentRole}
+      employees={employees}
+      leaveRequests={leaveRequests}
+      candidates={candidates}
+      onUpdateLeaveStatus={handleUpdateLeaveStatus}
+      onViewChange={(view) => navigate(`/${view}`)}
+      isPunchIn={isPunchIn}
+      punchTime={punchTime}
+      onTogglePunch={handleTogglePunch}
+      onAddLeaveRequest={handleAddLeaveRequest}
+    />
+  );
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="bg-card p-5 rounded-xl border border-border">
-                    <h3 className="mb-4 pb-2 border-b border-border">Employment Contract</h3>
-                    <div className="space-y-3 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Department</span>
-                        <span>{selectedEmployee.department}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Salary</span>
-                        <span>${selectedEmployee.salary.toLocaleString()}/yr</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Deductions</span>
-                        <span className="text-red-600">-${selectedEmployee.deductions.toLocaleString()}/mo</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Benefits</span>
-                        <span className="text-green-600">+${selectedEmployee.benefits.toLocaleString()}/mo</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Joined</span>
-                        <span>{selectedEmployee.dateJoined}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Performance</span>
-                        <span>{selectedEmployee.performanceRating}/5.0</span>
-                      </div>
-                    </div>
+  const employeeProfile = (
+    <div className="p-6 space-y-6">
+      <button
+        onClick={() => navigate('/employees')}
+        className="text-xs text-primary hover:underline"
+      >
+        Back to Employees
+      </button>
+      {routeSelectedEmployee && (
+        <div className="space-y-6">
+          <div className="bg-card p-6 rounded-xl border border-border">
+            <div className="flex items-start gap-6">
+              <img
+                src={routeSelectedEmployee.avatar}
+                alt={routeSelectedEmployee.name}
+                className="w-24 h-24 rounded-xl object-cover border border-border"
+              />
+              <div className="flex-1">
+                <h2>{routeSelectedEmployee.name}</h2>
+                <p className="text-sm text-primary mt-1">{routeSelectedEmployee.role}</p>
+                <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-border text-xs">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>{routeSelectedEmployee.email}</span>
                   </div>
-
-                  <div className="bg-card p-5 rounded-xl border border-border">
-                    <h3 className="mb-4 pb-2 border-border">Leave Balance</h3>
-                    <div className="space-y-4 text-xs">
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-muted-foreground">Vacation</span>
-                          <span>{selectedEmployee.leaveBalances.vacation} days</span>
-                        </div>
-                        <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                          <div className="bg-primary h-2" style={{ width: `${(selectedEmployee.leaveBalances.vacation / 25) * 100}%` }} />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-muted-foreground">Sick Leave</span>
-                          <span>{selectedEmployee.leaveBalances.sick} days</span>
-                        </div>
-                        <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                          <div className="bg-green-500 h-2" style={{ width: `${(selectedEmployee.leaveBalances.sick / 15) * 100}%` }} />
-                        </div>
-                      </div>
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <span className="text-muted-foreground">Personal</span>
-                          <span>{selectedEmployee.leaveBalances.personal} days</span>
-                        </div>
-                        <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
-                          <div className="bg-amber-500 h-2" style={{ width: `${(selectedEmployee.leaveBalances.personal / 10) * 100}%` }} />
-                        </div>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>{routeSelectedEmployee.phone}</span>
                   </div>
-
-                  <div className="bg-card p-5 rounded-xl border border-border">
-                    <h3 className="mb-4 pb-2 border-b border-border">Compliance Docs</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded text-xs">
-                        <span>W-4 Form signed</span>
-                        <span className="text-[10px] text-green-600">Verified</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded text-xs">
-                        <span>I-9 Identity documents</span>
-                        <span className="text-[10px] text-green-600">Verified</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded text-xs">
-                        <span>Direct Deposit Form</span>
-                        <span className="text-[10px] text-green-600">Verified</span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded text-xs">
-                        <span>Non-Disclosure (NDA)</span>
-                        <span className="text-[10px] text-amber-600">Pending Update</span>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span>{routeSelectedEmployee.location}</span>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
-        );
-      default:
-        return <Dashboard
-          selectedRole={selectedRole}
-          employees={employees}
-          leaveRequests={leaveRequests}
-          candidates={candidates}
-          onUpdateLeaveStatus={handleUpdateLeaveStatus}
-          onViewChange={setActiveView}
-          isPunchIn={isPunchIn}
-          punchTime={punchTime}
-          onTogglePunch={handleTogglePunch}
-          onAddLeaveRequest={handleAddLeaveRequest}
-        />;
-    }
-  };
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="bg-card p-5 rounded-xl border border-border">
+              <h3 className="mb-4 pb-2 border-b border-border">Employment Contract</h3>
+              <div className="space-y-3 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Department</span>
+                  <span>{routeSelectedEmployee.department}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Salary</span>
+                  <span>${routeSelectedEmployee.salary.toLocaleString()}/yr</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Deductions</span>
+                  <span className="text-red-600">-${routeSelectedEmployee.deductions.toLocaleString()}/mo</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Benefits</span>
+                  <span className="text-green-600">+${routeSelectedEmployee.benefits.toLocaleString()}/mo</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Joined</span>
+                  <span>{routeSelectedEmployee.dateJoined}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Performance</span>
+                  <span>{routeSelectedEmployee.performanceRating}/5.0</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card p-5 rounded-xl border border-border">
+              <h3 className="mb-4 pb-2 border-border">Leave Balance</h3>
+              <div className="space-y-4 text-xs">
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-muted-foreground">Vacation</span>
+                    <span>{routeSelectedEmployee.leaveBalances.vacation} days</span>
+                  </div>
+                  <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
+                    <div className="bg-primary h-2" style={{ width: `${(routeSelectedEmployee.leaveBalances.vacation / 25) * 100}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-muted-foreground">Sick Leave</span>
+                    <span>{routeSelectedEmployee.leaveBalances.sick} days</span>
+                  </div>
+                  <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
+                    <div className="bg-green-500 h-2" style={{ width: `${(routeSelectedEmployee.leaveBalances.sick / 15) * 100}%` }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-muted-foreground">Personal</span>
+                    <span>{routeSelectedEmployee.leaveBalances.personal} days</span>
+                  </div>
+                  <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
+                    <div className="bg-amber-500 h-2" style={{ width: `${(routeSelectedEmployee.leaveBalances.personal / 10) * 100}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-card p-5 rounded-xl border border-border">
+              <h3 className="mb-4 pb-2 border-b border-border">Compliance Docs</h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded text-xs">
+                  <span>W-4 Form signed</span>
+                  <span className="text-[10px] text-green-600">Verified</span>
+                </div>
+                <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded text-xs">
+                  <span>I-9 Identity documents</span>
+                  <span className="text-[10px] text-green-600">Verified</span>
+                </div>
+                <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded text-xs">
+                  <span>Direct Deposit Form</span>
+                  <span className="text-[10px] text-green-600">Verified</span>
+                </div>
+                <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded text-xs">
+                  <span>Non-Disclosure (NDA)</span>
+                  <span className="text-[10px] text-amber-600">Pending Update</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   if (isAuthLoading) {
     return (
@@ -409,21 +411,16 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return (
-      <LoginPage
-        selectedRole={selectedRole}
-        onRoleChange={setSelectedRole}
-        onSignIn={handleSignIn}
-      />
-    );
+    return <LoginPage onSignIn={handleSignIn} />;
   }
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar
         activeView={activeView}
-        onViewChange={setActiveView}
+        onViewChange={(view) => navigate(`/${view}`)}
         onSignOut={handleSignOut}
+        role={currentRole}
         userName={authUser?.name}
         userTitle={authUser?.title}
       />
@@ -431,8 +428,6 @@ export default function App() {
         <TopBar
           globalSearch={globalSearch}
           onSearchChange={setGlobalSearch}
-          selectedRole={selectedRole}
-          onRoleChange={setSelectedRole}
           notifications={notifications}
           onMarkAllRead={handleMarkAllRead}
           showNotifications={showNotifications}
@@ -443,7 +438,53 @@ export default function App() {
           onQuickAction={handleQuickAction}
         />
         <main className="flex-1 overflow-y-auto">
-          {renderView()}
+          <Routes>
+            <Route path="/" element={<Navigate to={defaultRouteByRole[currentRole]} replace />} />
+            <Route path="/login" element={<Navigate to={defaultRouteByRole[currentRole]} replace />} />
+            <Route path="/dashboard" element={dashboard} />
+            <Route
+              path="/employees"
+              element={
+                <EmployeeDirectory
+                  employees={employees}
+                  globalSearch={globalSearch}
+                  onSelectEmployee={(emp) => {
+                    setSelectedEmployee(emp);
+                    navigate(`/employees/${encodeURIComponent(emp.id)}`);
+                  }}
+                  onAddEmployee={handleAddEmployee}
+                />
+              }
+            />
+            <Route path="/employees/:employeeId" element={employeeProfile} />
+            <Route path="/attendance" element={<Attendance attendanceLogs={ATTENDANCE_LOGS} />} />
+            <Route
+              path="/leave"
+              element={
+                <LeaveManagement
+                  leaveRequests={leaveRequests}
+                  onAddLeaveRequest={handleAddLeaveRequest}
+                  onUpdateLeaveStatus={handleUpdateLeaveStatus}
+                  employees={employees}
+                />
+              }
+            />
+            <Route path="/payroll" element={<Payroll employees={employees} />} />
+            <Route
+              path="/recruitment"
+              element={
+                <Recruitment
+                  candidates={candidates}
+                  onAddCandidate={handleAddCandidate}
+                  onUpdateCandidateStage={handleUpdateCandidateStage}
+                />
+              }
+            />
+            <Route path="/performance" element={<Performance employees={employees} />} />
+            <Route path="/documents" element={<Documents />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to={defaultRouteByRole[currentRole]} replace />} />
+          </Routes>
         </main>
       </div>
     </div>

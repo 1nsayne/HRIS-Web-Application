@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "dev:api": "\"C:\\laragon\\bin\\php\\php-8.3.30-Win32-vs16-x64\\php.exe\" -S 127.0.0.1:8000 -t backend"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
