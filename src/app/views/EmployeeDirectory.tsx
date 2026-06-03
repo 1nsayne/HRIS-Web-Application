@@ -7,10 +7,12 @@ interface EmployeeDirectoryProps {
   globalSearch: string;
   onSelectEmployee: (employee: any) => void;
   onAddEmployee: () => void;
+  role?: 'admin' | 'employee' | 'exec';
 }
 
-export function EmployeeDirectory({ employees, globalSearch, onSelectEmployee, onAddEmployee }: EmployeeDirectoryProps) {
+export function EmployeeDirectory({ employees, globalSearch, onSelectEmployee, onAddEmployee, role = 'admin' }: EmployeeDirectoryProps) {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const canManageEmployees = role === 'admin';
 
   const departments = ['all', 'Engineering', 'Product', 'Design', 'People Operations'];
 
@@ -28,13 +30,15 @@ export function EmployeeDirectory({ employees, globalSearch, onSelectEmployee, o
           <h2>Corporate Employee Registry</h2>
           <p className="text-sm text-muted-foreground mt-1">{employees.length} total employees</p>
         </div>
-        <button
-          onClick={onAddEmployee}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-4 h-4" />
-          Onboard New Employee
-        </button>
+        {canManageEmployees && (
+          <button
+            onClick={onAddEmployee}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+          >
+            <Plus className="w-4 h-4" />
+            Onboard New Employee
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-4">

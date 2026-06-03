@@ -9,6 +9,7 @@ interface TopBarProps {
   onToggleNotifications: () => void;
   isPunchIn: boolean;
   punchTime: string | null;
+  role?: 'admin' | 'employee' | 'exec';
   onTogglePunch: () => void;
   onQuickAction: () => void;
 }
@@ -22,9 +23,17 @@ export function TopBar({
   onToggleNotifications,
   isPunchIn,
   punchTime,
+  role = 'employee',
   onTogglePunch,
   onQuickAction
 }: TopBarProps) {
+  const isEmployee = role === 'employee';
+  const quickActionLabel = role === 'admin'
+    ? 'New Record'
+    : role === 'exec'
+      ? 'Inspect'
+      : 'Request';
+
   return (
     <header className="h-16 border-b border-border bg-card flex items-center px-6 gap-4">
       <div className="flex-1 flex items-center gap-4">
@@ -41,20 +50,22 @@ export function TopBar({
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg border border-border">
-          <Clock className={`w-4 h-4 ${isPunchIn ? 'text-green-600 animate-pulse' : 'text-muted-foreground'}`} />
-          <span className="text-xs font-medium text-foreground">
-            {isPunchIn ? `In: ${punchTime}` : 'Clocked Out'}
-          </span>
-          <button
-            onClick={onTogglePunch}
-            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all ${
-              isPunchIn ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-primary/10 text-primary hover:bg-primary/20'
-            }`}
-          >
-            {isPunchIn ? 'Out' : 'In'}
-          </button>
-        </div>
+        {isEmployee && (
+          <div className="hidden sm:flex items-center gap-2 bg-muted px-3 py-1.5 rounded-lg border border-border">
+            <Clock className={`w-4 h-4 ${isPunchIn ? 'text-green-600 animate-pulse' : 'text-muted-foreground'}`} />
+            <span className="text-xs font-medium text-foreground">
+              {isPunchIn ? `In: ${punchTime}` : 'Clocked Out'}
+            </span>
+            <button
+              onClick={onTogglePunch}
+              className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase transition-all ${
+                isPunchIn ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-primary/10 text-primary hover:bg-primary/20'
+              }`}
+            >
+              {isPunchIn ? 'Out' : 'In'}
+            </button>
+          </div>
+        )}
 
         <div className="relative">
           <button
@@ -102,7 +113,7 @@ export function TopBar({
           className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:opacity-90 shadow-sm transition-all"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Quick Action</span>
+          <span>{quickActionLabel}</span>
         </button>
       </div>
     </header>

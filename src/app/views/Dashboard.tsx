@@ -1,7 +1,7 @@
-import { Users, UserCheck, UserX, TrendingUp, Calendar, Briefcase, Check, X } from 'lucide-react';
+import { Users, UserCheck, TrendingUp, Calendar, Briefcase, Check, X, AlertCircle, FileText } from 'lucide-react';
 import { MetricCard } from '../components/MetricCard';
 import { StatusBadge } from '../components/StatusBadge';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DashboardProps {
   selectedRole: string;
@@ -10,6 +10,7 @@ interface DashboardProps {
   employees: any[];
   leaveRequests: any[];
   candidates: any[];
+  attendanceLogs: any[];
   onUpdateLeaveStatus: (id: string, status: string) => void;
   onViewChange: (view: string) => void;
   isPunchIn: boolean;
@@ -25,6 +26,7 @@ export function Dashboard({
   employees,
   leaveRequests,
   candidates,
+  attendanceLogs,
   onUpdateLeaveStatus,
   onViewChange,
   isPunchIn,
@@ -32,27 +34,88 @@ export function Dashboard({
   onTogglePunch,
   onAddLeaveRequest
 }: DashboardProps) {
-  const attendanceData = [
-    { day: 'Mon', present: 145, absent: 8 },
-    { day: 'Tue', present: 148, absent: 5 },
-    { day: 'Wed', present: 142, absent: 11 },
-    { day: 'Thu', present: 150, absent: 3 },
-    { day: 'Fri', present: 138, absent: 15 },
-  ];
-
-  const hiringData = [
-    { month: 'Jan', hired: 8 },
-    { month: 'Feb', hired: 12 },
-    { month: 'Mar', hired: 15 },
-    { month: 'Apr', hired: 10 },
-    { month: 'May', hired: 18 },
-    { month: 'Jun', hired: 14 },
-  ];
-
   const pendingApprovals = leaveRequests.filter(r => r.status === 'Pending');
-  const presentCount = employees.filter(e => e.status === 'Active').length;
   const employeeLeaveBalances = currentEmployee?.leaveBalances ?? { vacation: 0, sick: 0, personal: 0 };
+  const activeEmployees = employees.filter((employee) => employee.status === 'Active');
+  const onLeaveEmployees = employees.filter((employee) => employee.status === 'On Leave');
+  const presentCount = attendanceLogs.filter((log) => ['On Time', 'Late'].includes(log.status)).length;
+  const lateCount = attendanceLogs.filter((log) => log.status === 'Late').length;
+  const excusedCount = attendanceLogs.filter((log) => log.status === 'Excused').length;
+  const attendanceRate = attendanceLogs.length ? (presentCount / attendanceLogs.length) * 100 : 0;
+  const approvedLeaves = leaveRequests.filter((request) => request.status === 'Approved');
+  const adminAttendanceData = ['On Time', 'Late', 'Excused', 'Absent'].map((status) => ({
+    status,
+    count: attendanceLogs.filter((log) => log.status === status).length,
+  }));
+  const candidatePipelineData = ['Applied', 'Screening', 'Technical Assessment', 'Interview', 'Offer Stage'].map((stage) => ({
+    stage: stage.replace('Technical Assessment', 'Assessment').replace('Offer Stage', 'Offer'),
+    count: candidates.filter((candidate) => candidate.stage === stage).length,
+  }));
+  const totalAnnualSalary = employees.reduce((sum, employee) => sum + employee.salary, 0);
+  const totalAnnualBenefits = employees.reduce((sum, employee) => sum + employee.benefits * 12, 0);
+  const totalAnnualPayrollBurden = totalAnnualSalary + totalAnnualBenefits;
+  const averagePerformance = employees.length
+    ? employees.reduce((sum, employee) => sum + employee.performanceRating, 0) / employees.length
+    : 0;
+  const retentionRate = employees.length ? (activeEmployees.length / employees.length) * 100 : 0;
+  const offerStageCount = candidates.filter((candidate) => candidate.stage === 'Offer Stage').length;
+  const interviewedCount = candidates.filter((candidate) => ['Interview', 'Offer Stage'].includes(candidate.stage)).length;
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+  const formatCompactCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(amount);
+  };
+  const departmentMetrics = Object.values(
+    employees.reduce<Record<string, { department: string; headcount: number; payroll: number; ratingTotal: number }>>((acc, employee) => {
+      if (!acc[employee.department]) {
+        acc[employee.department] = {
+          department: employee.department,
+          headcount: 0,
+          payroll: 0,
+          ratingTotal: 0,
+        };
+      }
 
+      acc[employee.department].headcount += 1;
+      acc[employee.department].payroll += employee.salary + employee.benefits * 12;
+      acc[employee.department].ratingTotal += employee.performanceRating;
+      return acc;
+    }, {})
+  ).map((department) => ({
+    ...department,
+    payrollShare: totalAnnualPayrollBurden ? Math.round((department.payroll / totalAnnualPayrollBurden) * 100) : 0,
+    averageRating: department.headcount ? department.ratingTotal / department.headcount : 0,
+  }));
+  const recruitingSourceMetrics = Object.values(
+    candidates.reduce<Record<string, { source: string; count: number; ratingTotal: number }>>((acc, candidate) => {
+      if (!acc[candidate.source]) {
+        acc[candidate.source] = {
+          source: candidate.source,
+          count: 0,
+          ratingTotal: 0,
+        };
+      }
+
+      acc[candidate.source].count += 1;
+      acc[candidate.source].ratingTotal += candidate.rating;
+      return acc;
+    }, {})
+  )
+    .map((source) => ({
+      ...source,
+      averageRating: source.count ? source.ratingTotal / source.count : 0,
+    }))
+    .sort((a, b) => b.averageRating - a.averageRating);
   return (
     <div className="p-6 space-y-6">
       <div className="p-6 rounded-xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 text-primary-foreground">
@@ -73,8 +136,8 @@ export function Dashboard({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard
               title="Active Headcount"
-              value={employees.length}
-              change="+2.4% vs previous cycle"
+              value={activeEmployees.length}
+              change={`${employees.length} total employees`}
               changeType="positive"
               icon={Users}
             />
@@ -88,14 +151,14 @@ export function Dashboard({
             <MetricCard
               title="Active Pipeline"
               value={candidates.length}
-              change="3 Interviews scheduled"
+              change={`${offerStageCount} offer-stage candidate${offerStageCount === 1 ? '' : 's'}`}
               changeType="neutral"
               icon={Briefcase}
             />
             <MetricCard
               title="Present Today"
               value={presentCount}
-              change="96.7% attendance"
+              change={`${attendanceRate.toFixed(1)}% attendance`}
               changeType="positive"
               icon={UserCheck}
             />
@@ -103,12 +166,17 @@ export function Dashboard({
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-card border border-border rounded-lg p-5">
-              <h3 className="mb-4">Weekly Attendance</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3>Today's Attendance</h3>
+                <button onClick={() => onViewChange('attendance')} className="text-xs text-primary hover:underline">
+                  Open timesheets
+                </button>
+              </div>
               <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={attendanceData}>
+                <BarChart data={adminAttendanceData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <XAxis dataKey="status" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--popover))',
@@ -116,19 +184,23 @@ export function Dashboard({
                       borderRadius: '8px'
                     }}
                   />
-                  <Bar dataKey="present" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="absent" fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="count" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
 
             <div className="bg-card border border-border rounded-lg p-5">
-              <h3 className="mb-4">Hiring Trend</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3>Candidate Pipeline</h3>
+                <button onClick={() => onViewChange('recruitment')} className="text-xs text-primary hover:underline">
+                  Open ATS
+                </button>
+              </div>
               <ResponsiveContainer width="100%" height={240}>
-                <LineChart data={hiringData}>
+                <BarChart data={candidatePipelineData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <XAxis dataKey="stage" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: 'hsl(var(--popover))',
@@ -136,10 +208,57 @@ export function Dashboard({
                       borderRadius: '8px'
                     }}
                   />
-                  <Line type="monotone" dataKey="hired" stroke="hsl(var(--chart-2))" strokeWidth={2} />
-                </LineChart>
+                  <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <button
+              onClick={() => onViewChange('leave')}
+              className="bg-card border border-border rounded-lg p-4 text-left hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Leave Queue</span>
+                <Calendar className="w-4 h-4 text-primary" />
+              </div>
+              <p className="text-2xl mt-3">{pendingApprovals.length}</p>
+              <p className="text-xs text-muted-foreground mt-1">{approvedLeaves.length} approved leave records</p>
+            </button>
+            <button
+              onClick={() => onViewChange('attendance')}
+              className="bg-card border border-border rounded-lg p-4 text-left hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Attendance Exceptions</span>
+                <AlertCircle className="w-4 h-4 text-amber-600" />
+              </div>
+              <p className="text-2xl mt-3">{lateCount + excusedCount}</p>
+              <p className="text-xs text-muted-foreground mt-1">{lateCount} late, {excusedCount} excused today</p>
+            </button>
+            <button
+              onClick={() => onViewChange('payroll')}
+              className="bg-card border border-border rounded-lg p-4 text-left hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Payroll Run</span>
+                <TrendingUp className="w-4 h-4 text-green-600" />
+              </div>
+              <p className="text-2xl mt-3">{formatCompactCurrency(totalAnnualPayrollBurden)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Annual salary and benefits burden</p>
+            </button>
+            <button
+              onClick={() => onViewChange('documents')}
+              className="bg-card border border-border rounded-lg p-4 text-left hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Compliance Docs</span>
+                <FileText className="w-4 h-4 text-primary" />
+              </div>
+              <p className="text-2xl mt-3">8</p>
+              <p className="text-xs text-muted-foreground mt-1">Policies, templates, and compliance files</p>
+            </button>
           </div>
 
           <div className="bg-card border border-border rounded-lg p-5">
@@ -309,81 +428,117 @@ export function Dashboard({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-card p-5 rounded-xl border border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payroll Burden Run-Rate</p>
-              <h3 className="text-3xl mt-1">$575,000<span className="text-sm text-muted-foreground">/Year</span></h3>
+              <h3 className="text-3xl mt-1">{formatCompactCurrency(totalAnnualPayrollBurden)}<span className="text-sm text-muted-foreground">/Year</span></h3>
               <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
                 <TrendingUp className="w-4 h-4" />
-                <span>Within budget</span>
+                <span>{formatCurrency(totalAnnualBenefits)} annual benefits load</span>
               </div>
             </div>
 
             <div className="bg-card p-5 rounded-xl border border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Talent Retention</p>
-              <h3 className="text-3xl mt-1">94.8%</h3>
-              <div className="flex items-center gap-1 mt-2 text-xs text-green-600">
-                <TrendingUp className="w-4 h-4" />
-                <span>Industry: 88.2%</span>
+              <h3 className="text-3xl mt-1">{retentionRate.toFixed(1)}%</h3>
+              <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                <Users className="w-4 h-4" />
+                <span>{activeEmployees.length} active, {onLeaveEmployees.length} on leave</span>
               </div>
             </div>
 
             <div className="bg-card p-5 rounded-xl border border-border">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Mean Employee Rating</p>
-              <h3 className="text-3xl mt-1">4.62 / 5.00</h3>
+              <h3 className="text-3xl mt-1">{averagePerformance.toFixed(2)} / 5.00</h3>
               <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-                <span>Based on Q1 evaluations</span>
+                <span>{interviewedCount} late-stage candidates, {offerStageCount} offer ready</span>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-card p-5 rounded-xl border border-border">
-              <h3 className="mb-4">Department Cost Breakdown</h3>
-              <div className="space-y-3">
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span>Engineering</span>
-                    <span>$250,000 (43%)</span>
-                  </div>
-                  <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden">
-                    <div className="bg-primary h-2.5 rounded-full" style={{ width: '43%' }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span>Product & Design</span>
-                    <span>$230,000 (40%)</span>
-                  </div>
-                  <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden">
-                    <div className="bg-chart-2 h-2.5 rounded-full" style={{ width: '40%' }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span>People Operations</span>
-                    <span>$95,000 (17%)</span>
-                  </div>
-                  <div className="w-full bg-muted h-2.5 rounded-full overflow-hidden">
-                    <div className="bg-green-500 h-2.5 rounded-full" style={{ width: '17%' }} />
-                  </div>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3>Department Cost Breakdown</h3>
+                <span className="text-xs text-muted-foreground">{employees.length} employees</span>
               </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={departmentMetrics}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="department" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" tickFormatter={(value) => formatCompactCurrency(Number(value))} />
+                  <Tooltip
+                    formatter={(value) => [formatCurrency(Number(value)), 'Payroll burden']}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="payroll" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
 
             <div className="bg-card p-5 rounded-xl border border-border">
-              <h3 className="mb-4">Recruiting Channel ROI</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded">
-                  <span className="text-xs">Direct Referrals</span>
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">Top ROI (4.8)</span>
-                </div>
-                <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded">
-                  <span className="text-xs">LinkedIn Pipeline</span>
-                  <span className="text-xs bg-chart-2/10 text-chart-2 px-2 py-1 rounded">Consistent (4.5)</span>
-                </div>
-                <div className="flex items-center justify-between p-2 hover:bg-muted/50 rounded">
-                  <span className="text-xs">Indeed Listings</span>
-                  <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">Variable (3.9)</span>
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3>Recruiting Pipeline</h3>
+                <button onClick={() => onViewChange('recruitment')} className="text-xs text-primary hover:underline">
+                  Inspect
+                </button>
               </div>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={candidatePipelineData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="stage" stroke="hsl(var(--muted-foreground))" tick={{ fontSize: 11 }} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="mt-4 space-y-2">
+                {recruitingSourceMetrics.slice(0, 3).map((source) => (
+                  <div key={source.source} className="flex items-center justify-between p-2 bg-muted/40 rounded text-xs">
+                    <span>{source.source}</span>
+                    <span className="text-primary">{source.count} candidates, {source.averageRating.toFixed(1)} avg</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3>Department Health</h3>
+              <button onClick={() => onViewChange('performance')} className="text-xs text-primary hover:underline">
+                View performance
+              </button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {departmentMetrics.map((department) => (
+                <div key={department.department} className="p-4 rounded-lg border border-border bg-muted/20">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm">{department.department}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{department.headcount} employees</p>
+                    </div>
+                    <span className="text-xs text-primary">{department.averageRating.toFixed(1)} / 5</span>
+                  </div>
+                  <div className="mt-4">
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Payroll share</span>
+                      <span>{department.payrollShare}%</span>
+                    </div>
+                    <div className="w-full bg-muted h-2 rounded-full overflow-hidden">
+                      <div className="bg-primary h-2 rounded-full" style={{ width: `${department.payrollShare}%` }} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">{formatCurrency(department.payroll)} annual burden</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

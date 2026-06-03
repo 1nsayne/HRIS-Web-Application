@@ -277,6 +277,7 @@ export default function App() {
       employees={employees}
       leaveRequests={leaveRequests}
       candidates={candidates}
+      attendanceLogs={ATTENDANCE_LOGS}
       onUpdateLeaveStatus={handleUpdateLeaveStatus}
       onViewChange={(view) => navigate(`/${view}`)}
       isPunchIn={isPunchIn}
@@ -444,6 +445,7 @@ export default function App() {
           onToggleNotifications={() => setShowNotifications(!showNotifications)}
           isPunchIn={isPunchIn}
           punchTime={punchTime}
+          role={currentRole}
           onTogglePunch={handleTogglePunch}
           onQuickAction={handleQuickAction}
         />
@@ -458,6 +460,7 @@ export default function App() {
                 <EmployeeDirectory
                   employees={employees}
                   globalSearch={globalSearch}
+                  role={currentRole}
                   onSelectEmployee={(emp) => {
                     setSelectedEmployee(emp);
                     navigate(`/employees/${encodeURIComponent(emp.id)}`);
@@ -494,12 +497,13 @@ export default function App() {
                 />
               }
             />
-            <Route path="/payroll" element={<Payroll employees={employees} />} />
+            <Route path="/payroll" element={<Payroll employees={employees} role={currentRole} />} />
             <Route
               path="/recruitment"
               element={
                 <Recruitment
                   candidates={candidates}
+                  role={currentRole}
                   onAddCandidate={handleAddCandidate}
                   onUpdateCandidateStage={handleUpdateCandidateStage}
                 />

@@ -3,9 +3,11 @@ import { StatusBadge } from '../components/StatusBadge';
 
 interface PayrollProps {
   employees: any[];
+  role?: 'admin' | 'employee' | 'exec';
 }
 
-export function Payroll({ employees }: PayrollProps) {
+export function Payroll({ employees, role = 'admin' }: PayrollProps) {
+  const canManagePayroll = role === 'admin';
   const totalGross = employees.reduce((sum, emp) => sum + emp.salary, 0);
   const totalDeductions = employees.reduce((sum, emp) => sum + emp.deductions * 12, 0);
   const totalNet = totalGross - totalDeductions;
@@ -29,18 +31,22 @@ export function Payroll({ employees }: PayrollProps) {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2>Payroll Run & Salary Matrix</h2>
-          <p className="text-sm text-muted-foreground mt-1">Current pay period: June 2026</p>
+          <h2>{canManagePayroll ? 'Payroll Run & Salary Matrix' : 'Payroll Summary & Cost Matrix'}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {canManagePayroll ? 'Current pay period: June 2026' : 'Leadership view of workforce compensation and pay period history'}
+          </p>
         </div>
-        <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors">
-            <Download className="w-4 h-4" />
-            Export
-          </button>
-          <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
-            Commit Current Run
-          </button>
-        </div>
+        {canManagePayroll && (
+          <div className="flex gap-2">
+            <button className="flex items-center gap-2 px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors">
+              <Download className="w-4 h-4" />
+              Export
+            </button>
+            <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
+              Commit Current Run
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

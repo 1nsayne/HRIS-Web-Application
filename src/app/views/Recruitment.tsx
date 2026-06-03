@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { Plus, Briefcase, User, Calendar } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 
 interface RecruitmentProps {
   candidates: any[];
+  role?: 'admin' | 'employee' | 'exec';
   onAddCandidate: (name: string, role: string, source: string) => void;
   onUpdateCandidateStage: (id: string, stage: string) => void;
 }
 
-export function Recruitment({ candidates, onAddCandidate, onUpdateCandidateStage }: RecruitmentProps) {
+export function Recruitment({ candidates, role = 'admin', onAddCandidate, onUpdateCandidateStage }: RecruitmentProps) {
   const [newCandidateName, setNewCandidateName] = useState('');
   const [newCandidateRole, setNewCandidateRole] = useState('');
   const [newCandidateSource, setNewCandidateSource] = useState('LinkedIn');
+  const canManageRecruitment = role === 'admin';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,8 +44,10 @@ export function Recruitment({ candidates, onAddCandidate, onUpdateCandidateStage
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2>Recruitment & Applicant Tracking (ATS)</h2>
-          <p className="text-sm text-muted-foreground mt-1">Track open positions and candidate pipeline</p>
+          <h2>{canManageRecruitment ? 'Recruitment & Applicant Tracking (ATS)' : 'Recruitment Pipeline Intelligence'}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {canManageRecruitment ? 'Track open positions and candidate pipeline' : 'Monitor hiring velocity, candidate quality, and late-stage pipeline health'}
+          </p>
         </div>
       </div>
 
@@ -57,49 +61,51 @@ export function Recruitment({ candidates, onAddCandidate, onUpdateCandidateStage
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div id="candForm" className="bg-card border border-border rounded-lg p-5 h-fit">
-          <h3 className="mb-4">Add New Candidate Profile</h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Full Name</label>
-              <input
-                type="text"
-                value={newCandidateName}
-                onChange={(e) => setNewCandidateName(e.target.value)}
-                placeholder="e.g. Liam Sterling"
-                className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Target Role Title</label>
-              <input
-                type="text"
-                value={newCandidateRole}
-                onChange={(e) => setNewCandidateRole(e.target.value)}
-                placeholder="e.g. Senior Backend Architect"
-                className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Acquisition Source</label>
-              <select
-                value={newCandidateSource}
-                onChange={(e) => setNewCandidateSource(e.target.value)}
-                className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option>LinkedIn</option>
-                <option>Direct Referral</option>
-                <option>Indeed</option>
-                <option>Recruiter Direct</option>
-              </select>
-            </div>
-            <button className="w-full py-2.5 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:opacity-90 transition-opacity">
-              Onboard to Stage: Applied
-            </button>
-          </form>
-        </div>
+        {canManageRecruitment && (
+          <div id="candForm" className="bg-card border border-border rounded-lg p-5 h-fit">
+            <h3 className="mb-4">Add New Candidate Profile</h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={newCandidateName}
+                  onChange={(e) => setNewCandidateName(e.target.value)}
+                  placeholder="e.g. Liam Sterling"
+                  className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Target Role Title</label>
+                <input
+                  type="text"
+                  value={newCandidateRole}
+                  onChange={(e) => setNewCandidateRole(e.target.value)}
+                  placeholder="e.g. Senior Backend Architect"
+                  className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">Acquisition Source</label>
+                <select
+                  value={newCandidateSource}
+                  onChange={(e) => setNewCandidateSource(e.target.value)}
+                  className="w-full text-sm border border-border rounded-lg p-2 bg-card focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option>LinkedIn</option>
+                  <option>Direct Referral</option>
+                  <option>Indeed</option>
+                  <option>Recruiter Direct</option>
+                </select>
+              </div>
+              <button className="w-full py-2.5 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:opacity-90 transition-opacity">
+                Onboard to Stage: Applied
+              </button>
+            </form>
+          </div>
+        )}
 
-        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
+        <div className={`${canManageRecruitment ? 'lg:col-span-2' : 'lg:col-span-3'} bg-card border border-border rounded-lg p-5`}>
           <h3 className="mb-4">Pipeline Records Board</h3>
           <div className="space-y-4">
             {candidates.map(cand => {
@@ -113,13 +119,13 @@ export function Recruitment({ candidates, onAddCandidate, onUpdateCandidateStage
                       <span className="text-sm">{cand.name}</span>
                       <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded">{cand.id}</span>
                     </div>
-                    <p className="text-xs text-primary mt-1">{cand.roleApplied} • <span className="text-muted-foreground">{cand.source}</span></p>
+                    <p className="text-xs text-primary mt-1">{cand.roleApplied} - <span className="text-muted-foreground">{cand.source}</span></p>
                     <span className="text-[10px] text-muted-foreground block mt-1">Applied: {cand.appliedDate}</span>
                   </div>
 
                   <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
                     <StatusBadge status={cand.stage} variant={getStageVariant(cand.stage)} />
-                    {cand.stage !== 'Offer Stage' && (
+                    {canManageRecruitment && cand.stage !== 'Offer Stage' && (
                       <button
                         onClick={() => {
                           if (currentIndex < stages.length - 1) {
@@ -128,7 +134,7 @@ export function Recruitment({ candidates, onAddCandidate, onUpdateCandidateStage
                         }}
                         className="px-2.5 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded text-[10px] transition-colors"
                       >
-                        Advance Stage →
+                        Advance Stage
                       </button>
                     )}
                   </div>

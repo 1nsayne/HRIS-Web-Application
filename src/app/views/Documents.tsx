@@ -7,6 +7,7 @@ interface DocumentsProps {
 
 export function Documents({ role = 'admin' }: DocumentsProps) {
   const isEmployee = role === 'employee';
+  const canManageDocuments = role === 'admin';
   const documents = [
     { id: 1, name: 'Employee Handbook 2026', type: 'Policy', size: '2.4 MB', uploadedBy: 'Jane Doe', date: '2026-01-15', category: 'company' },
     { id: 2, name: 'Code of Conduct', type: 'Policy', size: '856 KB', uploadedBy: 'Jane Doe', date: '2026-01-15', category: 'company' },
@@ -45,10 +46,12 @@ export function Documents({ role = 'admin' }: DocumentsProps) {
         <div>
           <h2>{isEmployee ? 'Company Documents' : 'Documents & Compliance'}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {isEmployee ? 'View policies, compliance files, and employee resources' : 'Manage company documents, policies, and compliance files'}
+            {canManageDocuments
+              ? 'Manage company documents, policies, and compliance files'
+              : 'View policies, compliance files, and employee resources'}
           </p>
         </div>
-        {!isEmployee && (
+        {canManageDocuments && (
           <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity">
             <Upload className="w-4 h-4" />
             Upload Document
@@ -70,10 +73,10 @@ export function Documents({ role = 'admin' }: DocumentsProps) {
         ))}
       </div>
 
-      <div className={`grid grid-cols-1 gap-6 ${isEmployee ? '' : 'lg:grid-cols-3'}`}>
-        <div className={`${isEmployee ? '' : 'lg:col-span-2'} bg-card border border-border rounded-lg overflow-hidden`}>
+      <div className={`grid grid-cols-1 gap-6 ${canManageDocuments ? 'lg:grid-cols-3' : ''}`}>
+        <div className={`${canManageDocuments ? 'lg:col-span-2' : ''} bg-card border border-border rounded-lg overflow-hidden`}>
           <div className="p-5 border-b border-border">
-            <h3>{isEmployee ? 'Available Documents' : 'All Documents'}</h3>
+            <h3>{canManageDocuments ? 'All Documents' : 'Available Documents'}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -114,7 +117,7 @@ export function Documents({ role = 'admin' }: DocumentsProps) {
           </div>
         </div>
 
-        {!isEmployee && (
+        {canManageDocuments && (
           <div className="bg-card border border-border rounded-lg p-5">
             <div className="flex items-center gap-2 mb-4">
               <FileText className="w-5 h-5 text-primary" />
